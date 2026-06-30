@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/registration.dart';
 
 class TicketScreen extends StatelessWidget {
@@ -128,38 +129,63 @@ class TicketScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 28),
 
-                      // Mock Barcode
+                      // Verification instructions or QR code
                       Center(
                         child: Column(
                           children: [
-                            Container(
-                              height: 60,
-                              width: 220,
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: const Color(0xFF94A3B8)),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: List.generate(
-                                  30,
-                                  (index) => Container(
-                                    width: index % 3 == 0
-                                        ? 4
-                                        : index % 2 == 0
-                                            ? 2
-                                            : 1,
-                                    color: Colors.black,
-                                  ),
+                            if (booking.status == 'pending') ...[
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFF59E0B)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.hourglass_empty, color: Color(0xFFD97706), size: 28),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Payment Verification Pending',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB45309), fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Transaction Ref: ${booking.upiRefId.isNotEmpty ? booking.upiRefId : booking.transactionId}',
+                                      style: const TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'The club president will verify your UPI transaction ID shortly and approve your ticket.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Color(0xFFB45309), fontSize: 10),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'Present code at entry gate to gain admission.',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                            )
+                            ] else ...[
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: QrImageView(
+                                  data: '${booking.id}',
+                                  version: QrVersions.auto,
+                                  size: 150.0,
+                                  gapless: false,
+                                  errorStateBuilder: (cxt, err) {
+                                    return const Center(child: Text("Error generating QR"));
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Present QR code at entry gate to gain admission.',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                              )
+                            ],
                           ],
                         ),
                       )

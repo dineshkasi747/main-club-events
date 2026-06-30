@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/app_state.dart';
 import 'home_screen.dart';
 
@@ -11,65 +13,70 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'student@college.edu');
-  final _passwordController = TextEditingController(text: 'password');
-  final _formKey = GlobalKey<FormState>();
   String _errorMessage = '';
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
+  void _handleGoogleLogin() async {
     setState(() {
       _errorMessage = '';
     });
 
-    final success = await Provider.of<AppState>(context, listen: false).login(
-      email.isEmpty ? 'student@college.edu' : email,
-      password.isEmpty ? 'password' : password,
-    );
-
-    if (success) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+    try {
+      final googleSignIn = GoogleSignIn(
+        serverClientId: '151448477468-2h599a70upkj7plglafifgdp77tafah9.apps.googleusercontent.com',
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        return; // User cancelled the sign-in flow
       }
-    } else {
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final String? email = userCredential.user?.email;
+      final String displayName = userCredential.user?.displayName ?? 'Student';
+
+      if (email == null) {
+        throw Exception("Could not retrieve email from Google Account.");
+      }
+
+      // Check domain restriction: only @gvpce.ac.in is allowed
+      if (!email.toLowerCase().endsWith('@gvpce.ac.in')) {
+        await FirebaseAuth.instance.signOut();
+        await googleSignIn.signOut();
+        setState(() {
+          _errorMessage = 'Access denied. Only @gvpce.ac.in emails are permitted.';
+        });
+        return;
+      }
+
+      // Proceed with backend login and registration
+      final success = await Provider.of<AppState>(context, listen: false).googleLogin(email, displayName);
+
+      if (success) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Backend authentication failed. Please try again.';
+        });
+      }
+    } catch (e) {
+      print('Google sign-in error: $e');
       setState(() {
-        _errorMessage = 'Invalid credentials or connection issue.';
+        _errorMessage = 'Google Sign-In failed or was cancelled.';
       });
     }
   }
 
-  void _handleDemoLogin() async {
-    setState(() {
-      _errorMessage = '';
-    });
-    
-    final success = await Provider.of<AppState>(context, listen: false).demoLogin();
-    
-    if (success) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      }
-    } else {
-      setState(() {
-        _errorMessage = 'Demo login failed.';
-      });
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
 
-              // Glassmorphic Style White Input Container
+              // Google Sign-In Card Container
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -140,114 +147,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_errorMessage.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFFCA5A5)),
-                          ),
-                          child: Text(
-                            _errorMessage,
-                            style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_errorMessage.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFCA5A5)),
                         ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Email input
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email' : null,
-                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 15),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.email, color: Color(0xFF4F46E5), size: 20),
-                          labelText: 'College Email Address',
-                          labelStyle: const TextStyle(color: Color(0xFF475569)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                          ),
+                        child: Text(
+                          _errorMessage,
+                          style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Password input
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        validator: (v) => v == null || v.isEmpty ? 'Password required' : null,
-                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 15),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.lock, color: Color(0xFF4F46E5), size: 20),
-                          labelText: 'Secret Password',
-                          labelStyle: const TextStyle(color: Color(0xFF475569)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Sign In Button
-                      ElevatedButton(
-                        onPressed: appState.isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: const Color(0xFF4F46E5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        child: appState.isLoading
-                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('Log In Session', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ),
-
-                      const SizedBox(height: 16),
-                      const Row(
-                        children: [
-                          Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12.0),
-                            child: Text('OR FOR TESTING', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
-                          ),
-                          Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Demo Sign In Button
-                      OutlinedButton(
-                        onPressed: appState.isLoading ? null : _handleDemoLogin,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: const Text('One-Tap Demo Student Login', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
-                      ),
+                      const SizedBox(height: 20),
                     ],
-                  ),
+
+                    const Text(
+                      'Welcome! Please sign in using your college Google account (@gvpce.ac.in) to access your dashboard, registered events, scanner tickets, and broadcast notifications.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.45),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Google Sign In Button
+                    ElevatedButton.icon(
+                      onPressed: appState.isLoading ? null : _handleGoogleLogin,
+                      icon: const Icon(Icons.g_mobiledata, size: 28, color: Colors.white),
+                      label: const Text('Sign In with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: const Color(0xFFEA4335), // Google Red branding
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "151448477468",
+    "project_id": "clubs-1f786",
+    "storage_bucket": "clubs-1f786.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151448477468:android:eda1123eab72c7b8a0a4d9",
+        "android_client_info": {
+          "package_name": "com.college.clubs.temp_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "151448477468-ob07edauah7g6sqk820boh0nq4o8467e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.college.clubs.temp_app",
+            "certificate_hash": "f56c2ce9d81899b8c1b928745b1f79a05ab27851"
+          }
+        },
+        {
+          "client_id": "151448477468-2h599a70upkj7plglafifgdp77tafah9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzrHkWyh6JdKoqjX7VVn4ec56FFGTQKSo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "151448477468-2h599a70upkj7plglafifgdp77tafah9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -7,6 +7,8 @@ class Event {
   final String dateString;
   final double price;
   final int capacity;
+  final bool freeRegistration;
+  final bool paidRegistration;
   final bool volunteerRegistration;
   final int volunteerLimit;
   final String status;
@@ -21,6 +23,8 @@ class Event {
     required this.dateString,
     required this.price,
     required this.capacity,
+    required this.freeRegistration,
+    required this.paidRegistration,
     required this.volunteerRegistration,
     required this.volunteerLimit,
     required this.status,
@@ -34,6 +38,7 @@ class Event {
   }
 
   factory Event.fromJson(Map<String, dynamic> json) {
+    final priceVal = (json['price'] as num).toDouble();
     return Event(
       id: json['id'] as int,
       clubId: json['clubId'] as int,
@@ -41,8 +46,10 @@ class Event {
       description: json['description'] ?? '',
       venue: json['venue'] ?? '',
       dateString: json['dateString'] ?? '',
-      price: (json['price'] as num).toDouble(),
+      price: priceVal,
       capacity: json['capacity'] as int,
+      freeRegistration: json['freeRegistration'] as bool? ?? (priceVal == 0.0),
+      paidRegistration: json['paidRegistration'] as bool? ?? (priceVal > 0.0),
       volunteerRegistration: json['volunteerRegistration'] as bool? ?? false,
       volunteerLimit: json['volunteerLimit'] as int? ?? 0,
       status: json['status'] ?? 'active',

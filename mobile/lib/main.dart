@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'providers/app_state.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 
-void main() {
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    debugPrint("Firebase initialized successfully.");
+  } catch (e) {
+    debugPrint("Firebase initialization skipped (expected for offline/mock runs): $e");
+  }
+  
   runApp(
     MultiProvider(
       providers: [
@@ -68,7 +84,7 @@ class CollegeClubsApp extends StatelessWidget {
           iconTheme: IconThemeData(color: Color(0xFF0F172A)),
         ),
       ),
-      home: const LoginScreen(),
+      home: Provider.of<AppState>(context).isAuthenticated ? const HomeScreen() : const LoginScreen(),
     );
   }
 }

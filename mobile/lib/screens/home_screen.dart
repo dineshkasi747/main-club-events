@@ -9,6 +9,7 @@ import 'club_detail_screen.dart';
 import 'event_detail_screen.dart';
 import 'ticket_screen.dart';
 import 'login_screen.dart';
+import 'notifications_screen.dart';
 import '../widgets/premium_image.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -342,6 +343,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           dateString: dateStr,
                           price: price,
                           capacity: capacity,
+                          freeRegistration: price == 0.0,
+                          paidRegistration: price > 0.0,
                           volunteerRegistration: volunteerReg,
                           volunteerLimit: volunteerLim,
                           clubId: selectedClubId,
@@ -443,17 +446,21 @@ class _HomeTabState extends State<HomeTab> {
                 Stack(
                   children: [
                     _buildCircularActionButton(Icons.notifications_none, () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No new notifications.')));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      );
                     }),
-                    Positioned(
-                      right: 4,
-                      top: 4,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                    if (appState.notifications.isNotEmpty)
+                      Positioned(
+                        right: 4,
+                        top: 4,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(width: 12),

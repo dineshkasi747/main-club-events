@@ -1,0 +1,29 @@
+# Gradle caches
+.gradle/
+
+# Temp folders
+tmp/
+
+# Flutter mobile build directories
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.metadata
+mobile/android/local.properties
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+
+# Environment files
+.env
+portal/backend/.env
+
+# Node modules (if any)
+node_modules/
+
+# Ignore all APK files
+*.apk
+
+# OS files
+.DS_Store
+Thumbs.db

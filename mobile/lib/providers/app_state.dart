@@ -3,6 +3,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/club.dart';
 import '../models/event.dart';
 import '../models/registration.dart';
@@ -11,9 +14,9 @@ class AppState extends ChangeNotifier {
   // Automatically resolve 10.0.2.2 for Android emulator, localhost for others
   static String get baseUrl {
     if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/api';
+      return 'http://10.0.2.2:8080/college/portal/backend/api.php';
     }
-    return 'http://localhost:5000/api';
+    return 'http://localhost:8080/college/portal/backend/api.php';
   }
 
   static final List<Club> _defaultClubs = [
@@ -61,6 +64,8 @@ class AppState extends ChangeNotifier {
       dateString: "Aug 27, 2026 @ 09:00 AM",
       price: 150.0,
       capacity: 120,
+      freeRegistration: false,
+      paidRegistration: true,
       volunteerRegistration: true,
       volunteerLimit: 15,
       status: "active",
@@ -75,6 +80,8 @@ class AppState extends ChangeNotifier {
       dateString: "Sep 05, 2026 @ 06:00 PM",
       price: 0.0,
       capacity: 300,
+      freeRegistration: true,
+      paidRegistration: false,
       volunteerRegistration: true,
       volunteerLimit: 25,
       status: "active",
@@ -89,6 +96,8 @@ class AppState extends ChangeNotifier {
       dateString: "Oct 12, 2026 @ 08:00 AM",
       price: 80.0,
       capacity: 80,
+      freeRegistration: false,
+      paidRegistration: true,
       volunteerRegistration: false,
       volunteerLimit: 0,
       status: "active",
@@ -103,6 +112,8 @@ class AppState extends ChangeNotifier {
       dateString: "Nov 14, 2026 @ 09:00 AM",
       price: 100.0,
       capacity: 150,
+      freeRegistration: false,
+      paidRegistration: true,
       volunteerRegistration: false,
       volunteerLimit: 0,
       status: "active",
@@ -284,6 +295,8 @@ class AppState extends ChangeNotifier {
       paymentMethod: "UPI (PhonePe)",
       paymentAmount: 150.00,
       transactionId: "TXN987654321",
+      upiRefId: "TXN987654321",
+      paymentScreenshot: "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=400",
       timestamp: "2026-06-26T12:00:00.000Z",
     )
   ];
@@ -293,13 +306,65 @@ class AppState extends ChangeNotifier {
   List<Club> _clubs = List.from(_defaultClubs);
   List<Event> _events = List.from(_defaultEvents);
   List<Registration> _bookings = List.from(_defaultBookings);
+  List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = false;
+
+  AppState() {
+    checkSavedSession();
+  }
+
+  Future<void> checkSavedSession() async {
+    try {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null && firebaseUser.email != null) {
+        final email = firebaseUser.email!;
+        final displayName = firebaseUser.displayName ?? 'Student';
+        
+        _token = email;
+        _user = {
+          "id": 6,
+          "name": displayName,
+          "email": email,
+          "role": "student",
+          "branch": "Engineering",
+          "rollNumber": "22GVP1234",
+          "yearOfPassing": 2026
+        };
+        notifyListeners();
+
+        try {
+          final response = await http.post(
+            Uri.parse('$baseUrl/auth/google-login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'name': displayName}),
+          ).timeout(const Duration(seconds: 4));
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            _token = data['token'];
+            _user = data['user'];
+            notifyListeners();
+            await fetchAllData();
+            initFcm();
+          }
+        } catch (e) {
+          print('Offline session restore, using local copy: $e');
+          _clubs = List.from(_defaultClubs);
+          _events = List.from(_defaultEvents);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Firebase Auth checkSavedSession error: $e');
+    }
+  }
 
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
   List<Club> get clubs => _clubs;
   List<Event> get events => _events;
   List<Registration> get bookings => _bookings;
+  List<Map<String, dynamic>> get notifications => _notifications;
   bool get isLoading => _isLoading;
 
   bool get isAuthenticated => _token != null;
@@ -317,6 +382,7 @@ class AppState extends ChangeNotifier {
         fetchClubs(),
         fetchEvents(),
         fetchBookings(),
+        fetchNotifications(),
       ]);
     } catch (e) {
       print('Error fetching data: $e');
@@ -360,10 +426,10 @@ class AppState extends ChangeNotifier {
           _user = data['user'];
           notifyListeners();
           await fetchAllData();
+          initFcm();
         }
       } catch (e) {
         print('Backend offline or failed, using demo/mock mode: $e');
-        // Pre-fetch clubs and events from mock data if server fails
         _clubs = List.from(_defaultClubs);
         _events = List.from(_defaultEvents);
         notifyListeners();
@@ -378,15 +444,128 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<bool> demoLogin() async {
-    return await login('student@college.edu', 'password');
+  Future<bool> googleLogin(String email, String displayName) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      // Mock login details directly for demo/offline functionality
+      _token = email;
+      _user = {
+        "id": 6,
+        "name": displayName,
+        "email": email,
+        "role": "student",
+        "branch": "Engineering",
+        "rollNumber": "22GVP1234",
+        "yearOfPassing": 2026
+      };
+      
+      _bookings = List.from(_defaultBookings);
+      notifyListeners();
+
+      try {
+        final response = await http.post(
+          Uri.parse('$baseUrl/auth/google-login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'name': displayName}),
+        ).timeout(const Duration(seconds: 4));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          _token = data['token'];
+          _user = data['user'];
+          notifyListeners();
+          await fetchAllData();
+          initFcm();
+        }
+      } catch (e) {
+        print('Backend offline or failed, using demo/mock mode for Google: $e');
+        _clubs = List.from(_defaultClubs);
+        _events = List.from(_defaultEvents);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      print('Google Login error: $e');
+      return true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  void logout() {
+  Future<bool> demoLogin() async {
+    return await login('student@gvpce.ac.in', 'password');
+  }
+
+  void logout() async {
     _token = null;
     _user = null;
     _bookings = [];
+    _notifications = [];
     notifyListeners();
+    try {
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().signOut();
+    } catch (e) {
+      print('Sign out error: $e');
+    }
+  }
+
+  Future<void> uploadFcmToken(String fcmToken) async {
+    if (!isAuthenticated) return;
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/users/fcm-token'),
+        headers: _headers,
+        body: jsonEncode({'token': fcmToken}),
+      ).timeout(const Duration(seconds: 3));
+      print('FCM Token uploaded successfully.');
+    } catch (e) {
+      print('uploadFcmToken error: $e');
+    }
+  }
+
+  Future<void> initFcm() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      final fcmToken = await messaging.getToken();
+      if (fcmToken != null) {
+        await uploadFcmToken(fcmToken);
+      }
+      messaging.onTokenRefresh.listen((newToken) {
+        uploadFcmToken(newToken);
+      });
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print("Received foreground push notification: ${message.notification?.title}");
+        fetchNotifications();
+      });
+    } catch (e) {
+      print("Firebase Messaging init skipped: $e");
+    }
+  }
+
+  Future<void> fetchNotifications() async {
+    if (!isAuthenticated) return;
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/notifications'), headers: _headers).timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _notifications = data.map((json) => Map<String, dynamic>.from(json)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Fetch notifications error: $e');
+    }
   }
 
   Future<void> fetchClubs() async {
@@ -473,8 +652,11 @@ class AppState extends ChangeNotifier {
   Future<bool> registerForEvent({
     required int eventId,
     required String type,
+    String regMode = 'free',
     String paymentMethod = 'free',
     String transactionId = 'FREE_REG',
+    String upiRefId = '',
+    String paymentScreenshot = '',
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -484,8 +666,11 @@ class AppState extends ChangeNotifier {
         headers: _headers,
         body: jsonEncode({
           'type': type,
+          'regMode': regMode,
           'paymentMethod': paymentMethod,
           'transactionId': transactionId,
+          'upiRefId': upiRefId,
+          'paymentScreenshot': paymentScreenshot,
         }),
       ).timeout(const Duration(seconds: 3));
 
@@ -507,14 +692,16 @@ class AppState extends ChangeNotifier {
         eventId: event.id,
         eventTitle: event.title,
         eventClubId: event.clubId,
-        eventPrice: event.price,
+        eventPrice: regMode == 'paid' ? event.price : 0.0,
         eventVenue: event.venue,
         eventDate: event.dateString,
         type: type,
-        status: 'approved',
+        status: regMode == 'paid' ? 'pending' : 'approved',
         paymentMethod: paymentMethod,
-        paymentAmount: type == 'volunteer' ? 0.0 : event.price,
+        paymentAmount: regMode == 'volunteer' ? 0.0 : (regMode == 'paid' ? event.price : 0.0),
         transactionId: transactionId,
+        upiRefId: upiRefId,
+        paymentScreenshot: paymentScreenshot,
         timestamp: DateTime.now().toIso8601String(),
       );
       _bookings.add(newReg);
@@ -533,6 +720,8 @@ class AppState extends ChangeNotifier {
     required String dateString,
     required double price,
     required int capacity,
+    required bool freeRegistration,
+    required bool paidRegistration,
     required bool volunteerRegistration,
     required int volunteerLimit,
     required int clubId,
@@ -551,6 +740,8 @@ class AppState extends ChangeNotifier {
           'dateString': dateString,
           'price': price,
           'capacity': capacity,
+          'freeRegistration': freeRegistration,
+          'paidRegistration': paidRegistration,
           'volunteerRegistration': volunteerRegistration,
           'volunteerLimit': volunteerLimit,
           'clubId': clubId,
@@ -576,6 +767,8 @@ class AppState extends ChangeNotifier {
         dateString: dateString,
         price: price,
         capacity: capacity,
+        freeRegistration: freeRegistration,
+        paidRegistration: paidRegistration,
         volunteerRegistration: volunteerRegistration,
         volunteerLimit: volunteerLimit,
         status: 'active',

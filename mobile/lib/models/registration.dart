@@ -16,6 +16,8 @@ class Registration {
   final String paymentMethod;
   final double paymentAmount;
   final String transactionId;
+  final String upiRefId;
+  final String paymentScreenshot;
   final String timestamp;
 
   Registration({
@@ -36,6 +38,8 @@ class Registration {
     required this.paymentMethod,
     required this.paymentAmount,
     required this.transactionId,
+    required this.upiRefId,
+    required this.paymentScreenshot,
     required this.timestamp,
   });
 
@@ -58,6 +62,8 @@ class Registration {
       paymentMethod: json['paymentMethod'] ?? '',
       paymentAmount: (json['paymentAmount'] as num? ?? 0.0).toDouble(),
       transactionId: json['transactionId'] ?? '',
+      upiRefId: json['upiRefId'] ?? '',
+      paymentScreenshot: json['paymentScreenshot'] ?? '',
       timestamp: json['timestamp'] ?? '',
     );
   }

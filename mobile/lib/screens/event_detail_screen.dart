@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/event.dart';
 import '../providers/app_state.dart';
@@ -25,6 +26,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final success = await Provider.of<AppState>(context, listen: false).registerForEvent(
       eventId: widget.event.id,
       type: 'participant',
+      regMode: 'free',
       paymentMethod: 'free',
       transactionId: 'FREE_REG',
     );
@@ -48,6 +50,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final success = await Provider.of<AppState>(context, listen: false).registerForEvent(
       eventId: widget.event.id,
       type: 'volunteer',
+      regMode: 'volunteer',
       paymentMethod: 'free',
       transactionId: 'VOLUNTEER_REG',
     );
@@ -64,10 +67,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   void _showPaymentSheet() {
-    String selectedMethod = 'Card';
-    final cardHolderController = TextEditingController(text: 'Teja K.');
-    final cardNumberController = TextEditingController(text: '4111 2222 3333 4444');
-    final upiIdController = TextEditingController(text: 'student@ybl');
+    final refIdController = TextEditingController();
+    bool isUploadingScreenshot = false;
+    String? selectedScreenshotPath;
 
     showModalBottomSheet(
       context: context,
@@ -82,161 +84,235 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
+            final double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+            final upiUrl = 'upi://pay?pa=college@upi&pn=CampusLink&am=${widget.event.price}&cu=INR';
+            final qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${Uri.encodeComponent(upiUrl)}';
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
                 top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                bottom: bottomInset + 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Secure Payment Gateway',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2F6),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Amount to Pay:', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
-                        Text(
-                          '₹${widget.event.price.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF10B981)),
+                        const Text(
+                          'Scan to Pay (UPI)',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.pop(context),
                         )
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Method Selection
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text('Credit Card'),
-                          selected: selectedMethod == 'Card',
-                          selectedColor: const Color(0xFFE0E7FF),
-                          labelStyle: TextStyle(
-                            color: selectedMethod == 'Card' ? const Color(0xFF4F46E5) : const Color(0xFF475569),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              setModalState(() {
-                                selectedMethod = 'Card';
-                              });
-                            }
-                          },
+                    const SizedBox(height: 12),
+                    
+                    // QR Code block
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x080F172A), blurRadius: 10, offset: Offset(0, 4)),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text('PhonePe / UPI'),
-                          selected: selectedMethod == 'UPI',
-                          selectedColor: const Color(0xFFE0E7FF),
-                          labelStyle: TextStyle(
-                            color: selectedMethod == 'UPI' ? const Color(0xFF4F46E5) : const Color(0xFF475569),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            qrApiUrl,
+                            height: 150,
+                            width: 150,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const SizedBox(
+                                height: 150,
+                                width: 150,
+                                child: Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4F46E5)),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 150,
+                                width: 150,
+                                color: const Color(0xFFEEF2F6),
+                                child: const Icon(Icons.qr_code_2, size: 64, color: Color(0xFF4F46E5)),
+                              );
+                            },
                           ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              setModalState(() {
-                                selectedMethod = 'UPI';
-                              });
-                            }
-                          },
                         ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  if (selectedMethod == 'Card') ...[
-                    TextField(
-                      controller: cardHolderController,
-                      decoration: const InputDecoration(
-                        labelText: 'Cardholder Name',
-                        prefixIcon: Icon(Icons.person_outline, size: 20),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+
+                    // UPI details and copy
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('UPI ID (College Account)', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                const SizedBox(height: 2),
+                                const Text('college@upi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 20, color: Color(0xFF4F46E5)),
+                            onPressed: () {
+                              Clipboard.setData(const ClipboardData(text: 'college@upi'));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('UPI ID copied to clipboard!'),
+                                  backgroundColor: Color(0xFF4F46E5),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Transaction ref ID input
                     TextField(
-                      controller: cardNumberController,
+                      controller: refIdController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Card Number',
-                        prefixIcon: Icon(Icons.credit_card, size: 20),
+                        labelText: 'Transaction Reference (Ref) ID',
+                        hintText: 'Enter 12-digit UTR/Ref Number',
+                        prefixIcon: Icon(Icons.tag, size: 20),
                       ),
                     ),
-                  ] else ...[
-                    TextField(
-                      controller: upiIdController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter UPI ID',
-                        prefixIcon: Icon(Icons.phone_iphone, size: 20),
+                    const SizedBox(height: 16),
+
+                    // Screenshot uploader (Simulated)
+                    InkWell(
+                      onTap: () async {
+                        setModalState(() {
+                          isUploadingScreenshot = true;
+                        });
+                        // Simulate delay
+                        await Future.delayed(const Duration(milliseconds: 600));
+                        setModalState(() {
+                          isUploadingScreenshot = false;
+                          selectedScreenshotPath = 'payment_receipt.png';
+                        });
+                      },
+                      child: Container(
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: selectedScreenshotPath != null ? const Color(0xFFECFDF5) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selectedScreenshotPath != null ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: isUploadingScreenshot
+                            ? const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4F46E5))))
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    selectedScreenshotPath != null ? Icons.check_circle : Icons.upload_file,
+                                    color: selectedScreenshotPath != null ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    selectedScreenshotPath ?? 'Upload Receipt Screenshot (Optional)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: selectedScreenshotPath != null ? const Color(0xFF047857) : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Submit button
+                    ElevatedButton(
+                      onPressed: () async {
+                        final refId = refIdController.text.trim();
+                        if (refId.isEmpty || refId.length < 12) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a valid 12-digit transaction ID.'),
+                              backgroundColor: Color(0xFFEF4444),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(context); // Close bottom sheet
+                        setState(() {
+                          _isActionRunning = true;
+                        });
+
+                        final mockScreenshotUrl = selectedScreenshotPath != null
+                            ? 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=400'
+                            : '';
+
+                        final success = await Provider.of<AppState>(context, listen: false).registerForEvent(
+                          eventId: widget.event.id,
+                          type: 'participant',
+                          regMode: 'paid',
+                          paymentMethod: 'UPI',
+                          transactionId: refId,
+                          upiRefId: refId,
+                          paymentScreenshot: mockScreenshotUrl,
+                        );
+
+                        setState(() {
+                          _isActionRunning = false;
+                        });
+
+                        if (success) {
+                          _showSuccessDialog(
+                            'Registration Submitted!',
+                            'Your paid ticket registration has been submitted. It will appear as "PENDING" in your tickets list until approved by the club president.',
+                          );
+                        } else {
+                          _showErrorSnackBar('Booking failed. Already registered.');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF4F46E5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Submit Reference for Verification',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 28),
-
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(context); // Close bottom sheet
-                      setState(() {
-                        _isActionRunning = true;
-                      });
-
-                      final randomTxn = 'TXN${Random().nextInt(90000000) + 10000000}';
-                      
-                      final success = await Provider.of<AppState>(context, listen: false).registerForEvent(
-                        eventId: widget.event.id,
-                        type: 'participant',
-                        paymentMethod: selectedMethod,
-                        transactionId: randomTxn,
-                      );
-
-                      setState(() {
-                        _isActionRunning = false;
-                      });
-
-                      if (success) {
-                        _showSuccessDialog(
-                          'Payment Submitted!',
-                          'Your booking payment has been submitted for verification. It will show in bookings as "PENDING" until approved by the club president.',
-                        );
-                      } else {
-                        _showErrorSnackBar('Booking failed. Already registered.');
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFF4F46E5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Text('Submit Transaction for Verification', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -423,12 +499,28 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           ),
                         )
                       else ...[
-                        if (widget.event.price > 0) ...[
+                        if (widget.event.freeRegistration) ...[
+                          ElevatedButton(
+                            onPressed: _registerFree,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: const Color(0xFF4F46E5),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Register for Free Entry',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (widget.event.paidRegistration) ...[
                           ElevatedButton(
                             onPressed: _showPaymentSheet,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: const Color(0xFF4F46E5),
+                              backgroundColor: const Color(0xFF6366F1),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               elevation: 0,
                             ),
@@ -437,7 +529,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
                             ),
                           ),
-                        ] else if (widget.event.volunteerRegistration) ...[
+                          const SizedBox(height: 12),
+                        ],
+                        if (widget.event.volunteerRegistration) ...[
                           ElevatedButton(
                             onPressed: volunteerSpotsLeft > 0 ? _registerVolunteer : null,
                             style: ElevatedButton.styleFrom(
@@ -451,20 +545,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   ? 'Register as Event Volunteer ($volunteerSpotsLeft left)'
                                   : 'Volunteering Spots Full',
                               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
-                            ),
-                          ),
-                        ] else ...[
-                          ElevatedButton(
-                            onPressed: _registerFree,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: const Color(0xFF4F46E5),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Register for Free Entry',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
                             ),
                           ),
                         ]
