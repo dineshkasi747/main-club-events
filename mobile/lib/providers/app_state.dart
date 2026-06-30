@@ -14,7 +14,7 @@ class AppState extends ChangeNotifier {
   // Automatically resolve 10.0.2.2 for Android emulator, localhost for others
   static String get baseUrl {
     if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:8080/college/portal/backend/api.php';
+      return 'http://192.168.0.147:8080/college/portal/backend/api.php';
     }
     return 'http://localhost:8080/college/portal/backend/api.php';
   }
