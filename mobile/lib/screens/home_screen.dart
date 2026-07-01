@@ -63,12 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF4F46E5),
-        tooltip: 'Create Campus Event',
-        onPressed: () => _showCreateEventModal(context),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
