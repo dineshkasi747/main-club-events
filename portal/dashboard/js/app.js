@@ -24,7 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const welcomeTitle = document.getElementById('welcome-title');
         const welcomeSubtitle = document.getElementById('welcome-subtitle');
         if (welcomeTitle) welcomeTitle.innerText = `Hello, ${user.name} 👋`;
-        if (welcomeSubtitle) welcomeSubtitle.innerText = `President of Club ID: ${user.clubId || 'Admin'}`;
+        if (welcomeSubtitle) welcomeSubtitle.innerText = `Role: ${user.role === 'admin' ? 'Campus Admin' : `President of Club ID: ${user.clubId}`}`;
+
+        // Admin-only layout additions
+        if (user.role === 'admin') {
+            const navClubs = document.getElementById('nav-item-clubs');
+            const clubGroup = document.getElementById('event-club-group');
+            const pastClubGroup = document.getElementById('past-event-club-group');
+            if (navClubs) navClubs.style.display = 'block';
+            if (clubGroup) clubGroup.style.display = 'block';
+            if (pastClubGroup) pastClubGroup.style.display = 'block';
+        }
         
         fetchDashboardData();
     }
@@ -48,10 +58,10 @@ function switchTab(tabName) {
     activeTab = tabName;
     
     // Highlight nav links
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    const idx = ['overview', 'events', 'verifications', 'scanner'].indexOf(tabName);
-    if (idx !== -1) {
-        document.querySelectorAll('.nav-item')[idx].classList.add('active');
+    document.querySelectorAll('.nav-links .nav-item').forEach(el => el.classList.remove('active'));
+    const activeNav = document.getElementById(`nav-item-${tabName}`);
+    if (activeNav) {
+        activeNav.classList.add('active');
     }
 
     // Toggle tab visibility
@@ -129,8 +139,48 @@ async function fetchDashboardData() {
         const regRes = await fetch(`${API_BASE}/registrations`, { headers });
         if (regRes.ok) {
             registrations = await regRes.json();
+            // filter registrations scoped to president
+            if (user.role === 'president') {
+                registrations = registrations.filter(r => r.eventClubId === user.clubId);
+            }
             renderStats();
             renderVerificationsTable();
+        }
+
+        // Fetch past historical events
+        const pastEvRes = await fetch(`${API_BASE}/historical-events`);
+        if (pastEvRes.ok) {
+            let pastEventsList = await pastEvRes.json();
+            if (user.role === 'president') {
+                pastEventsList = pastEventsList.filter(e => e.clubId === user.clubId);
+            }
+            renderPastEventsGrid(pastEventsList);
+        }
+
+        // Admin-only fetch for clubs
+        if (user.role === 'admin') {
+            const clubsRes = await fetch(`${API_BASE}/clubs`);
+            if (clubsRes.ok) {
+                const clubs = await clubsRes.json();
+                
+                // Populate club select in event creation & past event creation
+                const selectElement = document.getElementById('event-club-select');
+                const pastSelectElement = document.getElementById('past-event-club-select');
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+                    clubs.forEach(c => {
+                        selectElement.innerHTML += `<option value="${c.id}">${c.name} (ID: ${c.id})</option>`;
+                    });
+                }
+                if (pastSelectElement) {
+                    pastSelectElement.innerHTML = '';
+                    clubs.forEach(c => {
+                        pastSelectElement.innerHTML += `<option value="${c.id}">${c.name} (ID: ${c.id})</option>`;
+                    });
+                }
+                
+                renderClubsGrid(clubs);
+            }
         }
     } catch (err) {
         console.error("Failed to load dashboard data:", err);
@@ -220,6 +270,12 @@ if (eventCreationForm) {
         const volunteerRegistration = document.getElementById('event-vol-reg').checked;
         const volunteerLimit = parseInt(document.getElementById('event-vol-limit').value) || 0;
 
+        let clubId = null;
+        if (user.role === 'admin') {
+            const selectEl = document.getElementById('event-club-select');
+            if (selectEl) clubId = parseInt(selectEl.value);
+        }
+
         try {
             const res = await fetch(`${API_BASE}/events`, {
                 method: 'POST',
@@ -229,7 +285,8 @@ if (eventCreationForm) {
                 },
                 body: JSON.stringify({
                     title, venue, description, dateString, price, capacity,
-                    freeRegistration, paidRegistration, volunteerRegistration, volunteerLimit
+                    freeRegistration, paidRegistration, volunteerRegistration, volunteerLimit,
+                    clubId: clubId
                 })
             });
 
@@ -535,5 +592,395 @@ if (scannerForm) {
                 alertBox.style.display = 'block';
             }
         }
+    });
+}
+
+// Toggle Club Creation Drawer
+function toggleClubForm(show) {
+    const clubFormCard = document.getElementById('club-form-card');
+    if (clubFormCard) clubFormCard.style.display = show ? 'block' : 'none';
+}
+
+// Club Creation Form Submit
+const clubCreationForm = document.getElementById('club-creation-form');
+if (clubCreationForm) {
+    clubCreationForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formAlert = document.getElementById('club-form-alert');
+        if (formAlert) formAlert.style.display = 'none';
+
+        const name = document.getElementById('club-name').value.trim();
+        const presidentName = document.getElementById('club-president-name').value.trim();
+        const description = document.getElementById('club-desc').value.trim();
+        const presidentEmail = document.getElementById('club-president-email').value.trim();
+        const presidentPassword = document.getElementById('club-president-password').value.trim();
+
+        try {
+            const res = await fetch(`${API_BASE}/clubs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name, presidentName, description, presidentEmail, presidentPassword
+                })
+            });
+
+            if (res.ok) {
+                clubCreationForm.reset();
+                toggleClubForm(false);
+                fetchDashboardData();
+            } else {
+                const err = await res.json();
+                if (formAlert) {
+                    formAlert.innerText = err.error || 'Failed to create club';
+                    formAlert.style.display = 'block';
+                }
+            }
+        } catch (err) {
+            if (formAlert) {
+                formAlert.innerText = 'Network communication error';
+                formAlert.style.display = 'block';
+            }
+        }
+    });
+}
+
+// Render Clubs Grid (Admin Only)
+function renderClubsGrid(clubs) {
+    const container = document.getElementById('clubs-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (clubs.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); grid-column: span 2;">No clubs registered yet.</p>';
+        return;
+    }
+
+    clubs.forEach(c => {
+        const membersList = Array.isArray(c.members) ? c.members : [];
+        const membersHtml = membersList.length > 0
+            ? membersList.map(m => `<li>${m}</li>`).join('')
+            : '<span style="font-style: italic; font-size: 12px; color: var(--text-muted);">No members registered yet</span>';
+
+        const cardHtml = `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <h3 style="font-size: 18px; font-weight: 700; color: var(--color-brand);">${c.name}</h3>
+                    <span class="badge" style="background-color: var(--color-brand-light); color: var(--color-brand);">ID: ${c.id}</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">${c.description}</p>
+                <div style="font-size: 13px; color: var(--text-primary); border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 12px;">
+                    👤 <strong>President:</strong> ${c.presidentName} (User ID: ${c.presidentId})
+                </div>
+                <div style="font-size: 13px;">
+                    👥 <strong>Members Count:</strong> ${c.membersCount}
+                    <ul style="margin: 8px 0 0 16px; padding: 0; font-size: 12px; color: var(--text-secondary);">
+                        ${membersHtml}
+                    </ul>
+                </div>
+            </div>
+        `;
+        container.innerHTML += cardHtml;
+    });
+}
+
+// Generate & Show Event Report
+function generateEventReport() {
+    if (!selectedEventDetails) return;
+    
+    const eventRegs = registrations.filter(r => r.eventId === selectedEventDetails.id && r.status !== 'cancelled');
+    const participants = eventRegs.filter(r => r.type === 'participant');
+    const volunteers = eventRegs.filter(r => r.type === 'volunteer');
+    
+    const approvedParticipants = participants.filter(r => r.status === 'approved' || r.status === 'attended');
+    const pendingParticipants = participants.filter(r => r.status === 'pending');
+    
+    const totalRevenue = approvedParticipants.reduce((sum, r) => sum + parseFloat(r.paymentAmount), 0);
+    const pendingRevenue = pendingParticipants.reduce((sum, r) => sum + parseFloat(r.paymentAmount), 0);
+    
+    const reportHtml = `
+        <div class="print-section" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+            <div style="text-align: center; margin-bottom: 24px; border-bottom: 2px solid var(--color-brand); padding-bottom: 16px;">
+                <h1 style="color: var(--color-brand); margin-bottom: 4px; font-weight: 800;">GVP College Clubs & Events</h1>
+                <p style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Official Event Progress Report</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <div>
+                    <h3 style="margin-bottom: 8px; font-size: 18px; color: var(--text-primary);">${selectedEventDetails.title}</h3>
+                    <p style="margin-bottom: 12px; font-size: 13px; line-height: 1.5; color: var(--text-secondary);">${selectedEventDetails.description}</p>
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        <div style="margin-bottom: 4px;">📍 <strong>Venue:</strong> ${selectedEventDetails.venue}</div>
+                        <div>📅 <strong>Date & Time:</strong> ${selectedEventDetails.dateString}</div>
+                    </div>
+                </div>
+                <div style="background-color: var(--bg-primary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                    <div>🎫 <strong>Ticket Price:</strong> ${selectedEventDetails.price > 0 ? `₹${selectedEventDetails.price}` : 'Free Entry'}</div>
+                    <div>👥 <strong>Capacity Limit:</strong> ${selectedEventDetails.capacity}</div>
+                    <div>👥 <strong>Seats Booked:</strong> ${participants.length} / ${selectedEventDetails.capacity}</div>
+                    <div>🤝 <strong>Volunteers Registered:</strong> ${volunteers.length} / ${selectedEventDetails.volunteerLimit}</div>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; font-size: 14px; color: var(--color-brand); font-weight: 700;">📈 Registration Statistics</h3>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; text-align: center;">
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 11px; color: var(--text-secondary);">Total Registered</div>
+                    <div style="font-size: 18px; font-weight: 800; margin-top: 4px; color: var(--text-primary);">${participants.length}</div>
+                </div>
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 11px; color: var(--text-secondary);">Approved Admissions</div>
+                    <div style="font-size: 18px; font-weight: 800; margin-top: 4px; color: var(--color-success);">${approvedParticipants.length}</div>
+                </div>
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 11px; color: var(--text-secondary);">Total Revenue</div>
+                    <div style="font-size: 18px; font-weight: 800; margin-top: 4px; color: var(--color-success);">₹${totalRevenue.toFixed(2)}</div>
+                </div>
+                <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 11px; color: var(--text-secondary);">Pending Payments</div>
+                    <div style="font-size: 18px; font-weight: 800; margin-top: 4px; color: var(--color-warning);">₹${pendingRevenue.toFixed(2)}</div>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; font-size: 14px; color: var(--color-brand); font-weight: 700;">👥 Roster of Registered Students</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 12px;">
+                <thead>
+                    <tr style="background-color: var(--bg-primary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 8px;">Student Name</th>
+                        <th style="padding: 8px;">Roll Number</th>
+                        <th style="padding: 8px;">Branch</th>
+                        <th style="padding: 8px;">Type</th>
+                        <th style="padding: 8px;">Status</th>
+                        <th style="padding: 8px; text-align: right;">Paid Amt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${participants.length === 0 ? '<tr><td colspan="6" style="padding:8px; text-align:center; color:var(--text-secondary);">No participants registered yet.</td></tr>' : participants.map(r => `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 8px; font-weight: 600;">${r.userName}</td>
+                            <td style="padding: 8px;">${r.userRollNumber}</td>
+                            <td style="padding: 8px;">${r.userBranch}</td>
+                            <td style="padding: 8px; text-transform: capitalize;">${r.type}</td>
+                            <td style="padding: 8px;"><span class="badge badge-${r.status}" style="font-size: 10px; padding: 2px 6px;">${r.status}</span></td>
+                            <td style="padding: 8px; font-weight: bold; text-align: right;">₹${parseFloat(r.paymentAmount).toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <h3 style="margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; font-size: 14px; color: var(--color-brand); font-weight: 700;">🤝 Volunteers list</h3>
+            ${volunteers.length === 0 ? '<p style="color: var(--text-secondary); font-size: 13px; padding-left: 8px;">No volunteers registered yet.</p>' : `
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background-color: var(--bg-primary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 8px;">Volunteer Name</th>
+                        <th style="padding: 8px;">Roll Number</th>
+                        <th style="padding: 8px;">Branch</th>
+                        <th style="padding: 8px; text-align: right;">Year of Passing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${volunteers.map(v => `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 8px; font-weight: 600;">${v.userName}</td>
+                            <td style="padding: 8px;">${v.userRollNumber}</td>
+                            <td style="padding: 8px;">${v.userBranch}</td>
+                            <td style="padding: 8px; text-align: right;">${v.userYearOfPassing}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            `}
+            
+            <div style="margin-top: 40px; font-size: 11px; text-align: center; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                Report generated on ${new Date().toLocaleString()} • CampusLink Portal System
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('report-content').innerHTML = reportHtml;
+    document.getElementById('report-modal').style.display = 'flex';
+}
+
+function closeReportModal() {
+    document.getElementById('report-modal').style.display = 'none';
+}
+
+function printReport() {
+    const printContents = document.getElementById('report-content').innerHTML;
+    const printWindow = window.open('', '_blank', 'height=600,width=800');
+    
+    printWindow.document.write('<html><head><title>Event Analytics Report</title>');
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+        printWindow.document.write(`<link rel="stylesheet" href="${link.href}">`);
+    });
+    printWindow.document.write(`
+        <style>
+            body {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                background-color: white !important;
+                color: black !important;
+                padding: 40px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                margin-bottom: 20px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2 !important;
+                font-weight: bold;
+            }
+            .badge {
+                border: 1px solid #999;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                text-transform: uppercase;
+                color: black !important;
+                background: transparent !important;
+            }
+        </style>
+    `);
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContents);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+}
+
+// Active vs. Past Events Tab switcher
+let activeEventSubTab = 'active';
+function switchEventSubTab(subTabName) {
+    activeEventSubTab = subTabName;
+    document.getElementById('event-subtab-active').classList.toggle('active', subTabName === 'active');
+    document.getElementById('event-subtab-past').classList.toggle('active', subTabName === 'past');
+    
+    document.getElementById('btn-publish-active').style.display = subTabName === 'active' ? 'block' : 'none';
+    document.getElementById('btn-upload-past').style.display = subTabName === 'past' ? 'block' : 'none';
+    
+    document.getElementById('events-grid-container').style.display = subTabName === 'active' ? 'grid' : 'none';
+    document.getElementById('past-events-grid-container').style.display = subTabName === 'past' ? 'grid' : 'none';
+    
+    toggleEventForm(false);
+    togglePastEventForm(false);
+}
+
+// Toggle Past Event Drawer
+function togglePastEventForm(show) {
+    const formCard = document.getElementById('past-event-form-card');
+    if (formCard) formCard.style.display = show ? 'block' : 'none';
+}
+
+// Past Event creation form submit
+const pastEventCreationForm = document.getElementById('past-event-creation-form');
+if (pastEventCreationForm) {
+    pastEventCreationForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formAlert = document.getElementById('past-event-form-alert');
+        if (formAlert) formAlert.style.display = 'none';
+
+        const title = document.getElementById('past-event-title').value.trim();
+        const academicYear = document.getElementById('past-event-year').value.trim();
+        const description = document.getElementById('past-event-desc').value.trim();
+        const date = document.getElementById('past-event-date').value.trim();
+        const venue = document.getElementById('past-event-venue').value.trim();
+        const volunteersCount = parseInt(document.getElementById('past-event-vols').value) || 0;
+        const images = document.getElementById('past-event-images').value.trim();
+
+        let clubId = null;
+        if (user.role === 'admin') {
+            const selectEl = document.getElementById('past-event-club-select');
+            if (selectEl) clubId = parseInt(selectEl.value);
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/historical-events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title, academicYear, description, date, venue, volunteersCount, images, clubId
+                })
+            });
+
+            if (res.ok) {
+                pastEventCreationForm.reset();
+                togglePastEventForm(false);
+                fetchDashboardData();
+            } else {
+                const err = await res.json();
+                if (formAlert) {
+                    formAlert.innerText = err.error || 'Failed to upload past event';
+                    formAlert.style.display = 'block';
+                }
+            }
+        } catch (err) {
+            if (formAlert) {
+                formAlert.innerText = 'Network communication error';
+                formAlert.style.display = 'block';
+            }
+        }
+    });
+}
+
+// Render Past/Historical Events Grid
+function renderPastEventsGrid(pastEvents) {
+    const container = document.getElementById('past-events-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (pastEvents.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); grid-column: span 2;">No past events found for this club tenure.</p>';
+        return;
+    }
+
+    pastEvents.forEach(e => {
+        let imagesHtml = '';
+        if (e.images && e.images.length > 0) {
+            const imagesList = Array.isArray(e.images) ? e.images : [];
+            imagesHtml = `
+                <div style="display:flex; gap:8px; margin-top:12px; overflow-x:auto;">
+                    ${imagesList.map(url => `<img src="${url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />`).join('')}
+                </div>
+            `;
+        }
+
+        const cardHtml = `
+            <div class="card event-card">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="badge" style="background-color: var(--color-brand-light); color: var(--color-brand);">
+                            🎓 Year: ${e.academicYear}
+                        </span>
+                        <span class="badge badge-approved" style="background-color: #F1F5F9; color: #475569;">PAST TENURE</span>
+                    </div>
+                    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">${e.title}</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">${e.description}</p>
+                    
+                    <div class="event-details-box">
+                        <div>📍 ${e.venue}</div>
+                        <div>📅 Date: ${e.date}</div>
+                        <div style="color: var(--color-brand); font-weight: 600;">🤝 Volunteers: ${e.volunteersCount} staff</div>
+                    </div>
+                    ${imagesHtml}
+                </div>
+            </div>
+        `;
+        container.innerHTML += cardHtml;
     });
 }

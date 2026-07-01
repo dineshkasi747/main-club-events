@@ -45,15 +45,15 @@ class Registration {
 
   factory Registration.fromJson(Map<String, dynamic> json) {
     return Registration(
-      id: json['id'] as int,
-      userId: json['userId'] as int,
+      id: (json['id'] as num).toInt(),
+      userId: (json['userId'] as num).toInt(),
       userName: json['userName'] as String,
       userBranch: json['userBranch'] ?? 'General',
       userRollNumber: json['userRollNumber'] ?? 'N/A',
-      userYearOfPassing: json['userYearOfPassing'] as int? ?? 2026,
-      eventId: json['eventId'] as int,
+      userYearOfPassing: (json['userYearOfPassing'] as num? ?? 2026).toInt(),
+      eventId: (json['eventId'] as num).toInt(),
       eventTitle: json['eventTitle'] ?? '',
-      eventClubId: json['eventClubId'] as int,
+      eventClubId: (json['eventClubId'] as num).toInt(),
       eventPrice: (json['eventPrice'] as num? ?? 0.0).toDouble(),
       eventVenue: json['eventVenue'] ?? '',
       eventDate: json['eventDate'] ?? '',

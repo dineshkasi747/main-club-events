@@ -122,6 +122,8 @@ function getGoogleAccessToken($serviceAccount) {
     curl_setopt($ch, CURLOPT_URL, 'https://oauth2.googleapis.com/token');
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
         'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -152,6 +154,14 @@ function sendPushNotification($serviceAccount, $title, $body, $tokens) {
                 'notification' => [
                     'title' => $title,
                     'body' => $body
+                ],
+                'android' => [
+                    'priority' => 'HIGH',
+                    'notification' => [
+                        'channel_id' => 'high_importance_channel',
+                        'notification_priority' => 'PRIORITY_HIGH',
+                        'sound' => 'default'
+                    ]
                 ]
             ]
         ]);
@@ -160,6 +170,8 @@ function sendPushNotification($serviceAccount, $title, $body, $tokens) {
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Authorization: Bearer {$accessToken}",
             "Content-Type: application/json"
@@ -183,7 +195,7 @@ if ($path === '/auth/login') {
     require_once __DIR__ . '/routes/google.php';
 } elseif ($path === '/clubs' || preg_match('#^/clubs/\d+$#', $path)) {
     require_once __DIR__ . '/routes/clubs.php';
-} elseif ($path === '/events' || preg_match('#^/events/\d+$#', $path) || preg_match('#^/events/\d+/register$#', $path)) {
+} elseif ($path === '/events' || preg_match('#^/events/\d+$#', $path) || preg_match('#^/events/\d+/register$#', $path) || $path === '/historical-events') {
     require_once __DIR__ . '/routes/events.php';
 } elseif ($path === '/registrations' || preg_match('#^/registrations/\d+/verify$#', $path) || preg_match('#^/registrations/\d+/admit$#', $path)) {
     require_once __DIR__ . '/routes/registrations.php';

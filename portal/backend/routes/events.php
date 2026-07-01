@@ -64,7 +64,14 @@ else {
         $imagePath = isset($body['imagePath']) ? $body['imagePath'] : '';
 
         $eventId = (float)(int)(microtime(true) * 1000);
-        $clubId = $currentUser['clubId'] !== null ? (int)$currentUser['clubId'] : (int)$body['clubId'];
+        $userClubId = null;
+        if (isset($currentUser['clubId']) && $currentUser['clubId'] !== null) {
+            $userClubId = (int)$currentUser['clubId'];
+        } elseif (isset($currentUser['club_id']) && $currentUser['club_id'] !== null) {
+            $userClubId = (int)$currentUser['club_id'];
+        }
+
+        $clubId = $userClubId !== null ? $userClubId : (isset($body['clubId']) ? (int)$body['clubId'] : null);
 
         $stmt = $pdo->prepare("INSERT INTO events (id, clubId, title, description, venue, dateString, price, capacity, freeRegistration, paidRegistration, volunteerRegistration, volunteerLimit, status, imagePath) VALUES (:id, :clubId, :title, :description, :venue, :dateString, :price, :capacity, :freeReg, :paidReg, :volReg, :volLimit, 'active', :imagePath)");
         $stmt->execute([
@@ -244,6 +251,81 @@ else {
             'upiRefId' => $isPaid ? ($upiRefId ?: $transactionId) : '',
             'paymentScreenshot' => $isPaid ? $paymentScreenshot : '',
             'timestamp' => date('c')
+        ], 201);
+    } elseif ($path === '/historical-events' && $method === 'GET') {
+        $stmt = $pdo->query("SELECT * FROM historical_events");
+        $pastEvents = $stmt->fetchAll();
+        foreach ($pastEvents as &$h) {
+            $h['id'] = (int)$h['id'];
+            $h['clubId'] = (int)$h['clubId'];
+            $h['volunteersCount'] = (int)$h['volunteersCount'];
+            $h['images'] = json_decode($h['images'], true) ?: [];
+        }
+        sendJson($pastEvents);
+    } elseif ($path === '/historical-events' && $method === 'POST') {
+        if ($currentUser['role'] !== 'admin' && $currentUser['role'] !== 'president') {
+            sendJson(['error' => 'Unauthorized. Presidents & admins only.'], 403);
+        }
+
+        $body = getJsonBody();
+        $academicYear = isset($body['academicYear']) ? trim($body['academicYear']) : '';
+        $title = isset($body['title']) ? trim($body['title']) : '';
+        $date = isset($body['date']) ? trim($body['date']) : '';
+        $venue = isset($body['venue']) ? trim($body['venue']) : '';
+        $description = isset($body['description']) ? trim($body['description']) : '';
+        $volunteersCount = isset($body['volunteersCount']) ? (int)$body['volunteersCount'] : 0;
+        $imagesInput = isset($body['images']) ? $body['images'] : [];
+
+        if (empty($academicYear) || empty($title) || empty($date) || empty($venue) || empty($description)) {
+            sendJson(['error' => 'All fields (academic year, title, date, venue, description) are required.'], 400);
+        }
+
+        $userClubId = null;
+        if (isset($currentUser['clubId']) && $currentUser['clubId'] !== null) {
+            $userClubId = (int)$currentUser['clubId'];
+        } elseif (isset($currentUser['club_id']) && $currentUser['club_id'] !== null) {
+            $userClubId = (int)$currentUser['club_id'];
+        }
+
+        $clubId = $userClubId !== null ? $userClubId : (isset($body['clubId']) ? (int)$body['clubId'] : null);
+        if (!$clubId) {
+            sendJson(['error' => 'Club ID is required.'], 400);
+        }
+
+        $stmt = $pdo->query("SELECT MAX(id) FROM historical_events");
+        $maxId = $stmt->fetchColumn();
+        $newId = $maxId ? ((int)$maxId + 1) : 2001;
+
+        if (is_string($imagesInput)) {
+            $images = array_filter(array_map('trim', explode(',', $imagesInput)));
+        } else {
+            $images = (array)$imagesInput;
+        }
+        $imagesJson = json_encode($images);
+
+        $stmt = $pdo->prepare("INSERT INTO historical_events (id, clubId, academicYear, title, date, venue, description, volunteersCount, images) VALUES (:id, :clubId, :academicYear, :title, :date, :venue, :description, :volunteersCount, :images)");
+        $stmt->execute([
+            'id' => $newId,
+            'clubId' => $clubId,
+            'academicYear' => $academicYear,
+            'title' => $title,
+            'date' => $date,
+            'venue' => $venue,
+            'description' => $description,
+            'volunteersCount' => $volunteersCount,
+            'images' => $imagesJson
+        ]);
+
+        sendJson([
+            'id' => $newId,
+            'clubId' => $clubId,
+            'academicYear' => $academicYear,
+            'title' => $title,
+            'date' => $date,
+            'venue' => $venue,
+            'description' => $description,
+            'volunteersCount' => $volunteersCount,
+            'images' => $images
         ], 201);
     } else {
         sendJson(['error' => 'Method not allowed'], 405);

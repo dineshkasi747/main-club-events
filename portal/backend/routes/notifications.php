@@ -11,8 +11,8 @@ if ($path === '/users/fcm-token' && $method === 'POST') {
         sendJson(['error' => 'Token is required'], 400);
     }
 
-    $stmt = $pdo->prepare("UPDATE users SET fcm_token = :token WHERE id = :userId");
-    $stmt->execute(['userId' => $currentUser['id'], 'token' => $token]);
+    $stmt = $pdo->prepare("INSERT INTO fcm_tokens (userId, token) VALUES (:userId, :tokenVal) ON DUPLICATE KEY UPDATE token = :tokenUpdate");
+    $stmt->execute(['userId' => $currentUser['id'], 'tokenVal' => $token, 'tokenUpdate' => $token]);
     
     sendJson(['message' => 'FCM token saved successfully']);
 }
@@ -49,8 +49,7 @@ elseif (preg_match('#^/notify/club/(\d+)$#', $path, $matches) && $method === 'PO
         'timestamp' => $timestamp
     ]);
 
-    // Send push notification if tokens are present
-    $stmt = $pdo->query("SELECT fcm_token FROM users WHERE fcm_token IS NOT NULL AND fcm_token != ''");
+    $stmt = $pdo->query("SELECT token FROM fcm_tokens");
     $tokens = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
     $serviceAccountJson = getEnvValue('FIREBASE_SERVICE_ACCOUNT_JSON');

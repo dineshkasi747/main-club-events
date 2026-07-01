@@ -17,11 +17,11 @@ class Club {
 
   factory Club.fromJson(Map<String, dynamic> json) {
     return Club(
-      id: json['id'] as int,
+      id: (json['id'] as num).toInt(),
       name: json['name'] as String,
       description: json['description'] as String,
       presidentName: json['presidentName'] as String,
-      membersCount: json['membersCount'] as int,
+      membersCount: (json['membersCount'] as num).toInt(),
       members: List<String>.from(json['members'] ?? []),
     );
   }

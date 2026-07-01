@@ -40,14 +40,14 @@ class Event {
   factory Event.fromJson(Map<String, dynamic> json) {
     final priceVal = (json['price'] as num).toDouble();
     return Event(
-      id: json['id'] as int,
-      clubId: json['clubId'] as int,
+      id: (json['id'] as num).toInt(),
+      clubId: (json['clubId'] as num).toInt(),
       title: json['title'] as String,
       description: json['description'] ?? '',
       venue: json['venue'] ?? '',
       dateString: json['dateString'] ?? '',
       price: priceVal,
-      capacity: json['capacity'] as int,
+      capacity: (json['capacity'] as num).toInt(),
       freeRegistration: json['freeRegistration'] as bool? ?? (priceVal == 0.0),
       paidRegistration: json['paidRegistration'] as bool? ?? (priceVal > 0.0),
       volunteerRegistration: json['volunteerRegistration'] as bool? ?? false,
@@ -83,14 +83,14 @@ class HistoricalEvent {
 
   factory HistoricalEvent.fromJson(Map<String, dynamic> json) {
     return HistoricalEvent(
-      id: json['id'] as int,
-      clubId: json['clubId'] as int,
+      id: (json['id'] as num).toInt(),
+      clubId: (json['clubId'] as num).toInt(),
       academicYear: json['academicYear'] as String,
       title: json['title'] as String,
       date: json['date'] as String,
       venue: json['venue'] as String,
       description: json['description'] as String,
-      volunteersCount: json['volunteersCount'] as int,
+      volunteersCount: (json['volunteersCount'] as num).toInt(),
       images: List<String>.from(json['images'] ?? []),
     );
   }

@@ -538,6 +538,11 @@ class AppState extends ChangeNotifier {
         provisional: false,
         sound: true,
       );
+      await messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       final fcmToken = await messaging.getToken();
       if (fcmToken != null) {
         await uploadFcmToken(fcmToken);

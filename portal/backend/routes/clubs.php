@@ -57,6 +57,82 @@ elseif (preg_match('#^/clubs/(\d+)$#', $path, $matches) && $method === 'GET') {
     $matchedClub['upcomingEvents'] = $upcomingEvents;
     $matchedClub['pastEvents'] = $pastEvents;
     sendJson($matchedClub);
+}
+
+elseif ($path === '/clubs' && $method === 'POST') {
+    $currentUser = getAuthenticatedUser($pdo);
+    if (!$currentUser || $currentUser['role'] !== 'admin') {
+        sendJson(['error' => 'Unauthorized. Main admin only.'], 403);
+    }
+
+    $body = getJsonBody();
+    $clubName = isset($body['name']) ? trim($body['name']) : '';
+    $clubDesc = isset($body['description']) ? trim($body['description']) : '';
+    $presName = isset($body['presidentName']) ? trim($body['presidentName']) : '';
+    $presEmail = isset($body['presidentEmail']) ? trim($body['presidentEmail']) : '';
+    $presPassword = isset($body['presidentPassword']) ? trim($body['presidentPassword']) : '';
+
+    if (empty($clubName) || empty($clubDesc) || empty($presName) || empty($presEmail) || empty($presPassword)) {
+        sendJson(['error' => 'All fields (club name, description, president name, email, password) are required.'], 400);
+    }
+
+    // Check if email already exists
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE LOWER(email) = LOWER(:email)");
+    $stmt->execute(['email' => $presEmail]);
+    if ($stmt->fetchColumn() > 0) {
+        sendJson(['error' => 'Email is already registered.'], 400);
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // 1. Create a unique club ID
+        $stmt = $pdo->query("SELECT MAX(id) FROM clubs");
+        $maxId = $stmt->fetchColumn();
+        $newClubId = $maxId ? ((int)$maxId + 1) : 101;
+        if ($newClubId < 101) {
+            $newClubId = 101;
+        }
+
+        // 2. Create the president user
+        $stmt = $pdo->prepare("INSERT INTO users (email, password, role, name, clubId) VALUES (:email, :password, 'president', :name, :clubId)");
+        $stmt->execute([
+            'email' => $presEmail,
+            'password' => $presPassword,
+            'name' => $presName,
+            'clubId' => $newClubId
+        ]);
+        $presidentUserId = (int)$pdo->lastInsertId();
+
+        // 3. Create the club
+        $stmt = $pdo->prepare("INSERT INTO clubs (id, name, description, presidentId, presidentName, membersCount, members) VALUES (:id, :name, :description, :presidentId, :presidentName, 0, '[]')");
+        $stmt->execute([
+            'id' => $newClubId,
+            'name' => $clubName,
+            'description' => $clubDesc,
+            'presidentId' => $presidentUserId,
+            'presidentName' => $presName
+        ]);
+
+        $pdo->commit();
+
+        sendJson([
+            'message' => 'Club and President created successfully!',
+            'club' => [
+                'id' => $newClubId,
+                'name' => $clubName,
+                'description' => $clubDesc,
+                'presidentId' => $presidentUserId,
+                'presidentName' => $presName,
+                'membersCount' => 0,
+                'members' => []
+            ]
+        ], 201);
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        sendJson(['error' => 'Transaction failed: ' . $e->getMessage()], 500);
+    }
 } else {
     sendJson(['error' => 'Method not allowed'], 405);
 }
