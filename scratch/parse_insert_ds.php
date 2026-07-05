@@ -6,7 +6,7 @@ $presidentStmt = $pdo->prepare("INSERT INTO users (id, email, password, role, na
     ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)");
 $presidentStmt->execute([
     'id' => 1050,
-    'email' => 'datascience@gvpce.ac.in',
+    'email' => 'dsclub@gvpce.ac.in',
     'password' => password_hash('password', PASSWORD_DEFAULT),
     'name' => 'G. Surya Chaitanya',
     'clubId' => 105
