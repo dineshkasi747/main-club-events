@@ -136,6 +136,105 @@ $historicalEvents = [
         'description' => 'A comprehensive workshop on machine learning models, algorithms, and training techniques.',
         'volunteersCount' => 10,
         'images' => json_encode(['assets/ieee_cs/posters/ml_workshop.jpeg'])
+    ],
+    [
+        'id' => 2608,
+        'clubId' => 106,
+        'academicYear' => '2022-23',
+        'title' => 'Get Ready For infytq',
+        'date' => 'May 10, 2022',
+        'venue' => 'IBM Lab, Main Block',
+        'description' => 'Warm up your skills and logical parsing for the Infytq certification exam.',
+        'volunteersCount' => 10,
+        'images' => json_encode(['assets/ieee_cs/posters/get_ready_for_infytq.jpeg'])
+    ],
+    [
+        'id' => 2609,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Brain Teasers',
+        'date' => 'Oct 12, 2021',
+        'venue' => 'Seminar Hall 1',
+        'description' => 'A fun-filled event containing riddles, logical tests, and cognitive problem puzzles.',
+        'volunteersCount' => 8,
+        'images' => json_encode(['assets/ieee_cs/posters/brain_teasers.jpeg'])
+    ],
+    [
+        'id' => 2610,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Crack the code',
+        'date' => 'Nov 15, 2021',
+        'venue' => 'Lab 2, CSE Block',
+        'description' => 'Analyze code snippets to spot bugs, optimize complexity, and forecast results.',
+        'volunteersCount' => 8,
+        'images' => json_encode(['assets/ieee_cs/posters/crack_the_code.jpeg'])
+    ],
+    [
+        'id' => 2611,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Let\'s Talk Tech',
+        'date' => 'Dec 05, 2021',
+        'venue' => 'Main Seminar Hall',
+        'description' => 'A technical speech competition presenting ideas on modern technology trends.',
+        'volunteersCount' => 5,
+        'images' => json_encode(['assets/ieee_cs/posters/lets_talk_tech.jpeg'])
+    ],
+    [
+        'id' => 2612,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Cyber Security & Pen Testing',
+        'date' => 'Jan 10, 2022',
+        'venue' => 'Main Seminar Hall',
+        'description' => 'An intensive workshop detailing security vulnerabilities, white-hat scanning, and API auditing.',
+        'volunteersCount' => 15,
+        'images' => json_encode(['assets/ieee_cs/posters/cyber_security.jpg'])
+    ],
+    [
+        'id' => 2613,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Code Wars',
+        'date' => 'Feb 18, 2022',
+        'venue' => 'CSE Labs',
+        'description' => 'A competitive coding challenge to build speed, accuracy, and robust algorithms.',
+        'volunteersCount' => 12,
+        'images' => json_encode(['assets/ieee_cs/posters/code_wars.jpg'])
+    ],
+    [
+        'id' => 2614,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Jobs in top MNCs',
+        'date' => 'Mar 15, 2022',
+        'venue' => 'Online Seminar',
+        'description' => 'Guide on crack interviews and positioning resumes for top technology multinational firms.',
+        'volunteersCount' => 10,
+        'images' => json_encode(['assets/ieee_cs/posters/mnc_jobs.jpg'])
+    ],
+    [
+        'id' => 2615,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'Byte Code Quiz',
+        'date' => 'Apr 22, 2022',
+        'venue' => 'Seminar Hall 2',
+        'description' => 'Trivia competition evaluating technical facts, architectures, and programming history.',
+        'volunteersCount' => 8,
+        'images' => json_encode(['assets/ieee_cs/posters/byte_code.jpg'])
+    ],
+    [
+        'id' => 2616,
+        'clubId' => 106,
+        'academicYear' => '2021-22',
+        'title' => 'IEEE CS Chapter Inauguration',
+        'date' => 'May 20, 2021',
+        'venue' => 'Main Auditorium',
+        'description' => 'Official launch event of the IEEE Computer Society Chapter at GVPCE(A) with guest addresses.',
+        'volunteersCount' => 15,
+        'images' => json_encode(['assets/ieee_cs/posters/cs_inaug.jpg'])
     ]
 ];
 

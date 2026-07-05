@@ -82,6 +82,11 @@ async function main() {
         console.log(`Loaded team.html length: ${teamHtml.length}`);
         fs.writeFileSync("e:/college/scratch/team_loaded.html", teamHtml);
         
+        console.log("5. Fetching cs_events.html?i=2 with cookie...");
+        const csEventsHtml = await fetchUrl("https://ieeesbgvpce.org/cs_events.html?i=2", cookie);
+        console.log(`Loaded cs_events.html length: ${csEventsHtml.length}`);
+        fs.writeFileSync("e:/college/scratch/cs_events_loaded.html", csEventsHtml);
+        
         console.log("Done!");
     } catch (e) {
         console.error("Error:", e);
