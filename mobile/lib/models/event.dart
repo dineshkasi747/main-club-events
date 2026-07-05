@@ -32,7 +32,7 @@ class Event {
   });
 
   String get category {
-    if (clubId == 101 || clubId == 104) return 'Technical';
+    if (clubId == 101 || clubId == 104 || clubId == 105 || clubId == 106) return 'Technical';
     if (clubId == 102) return 'Cultural';
     return 'Sports';
   }
@@ -58,6 +58,45 @@ class Event {
   }
 }
 
+class EventReportData {
+  final String guestsOfHonour;
+  final String conveners;
+  final String coordinators;
+  final String scopeAndObjectives;
+  final String outcomes;
+  final String article;
+  final String reportPdf;
+  final String studentConveners;
+  final Map<String, String> studentTeams;
+
+  EventReportData({
+    required this.guestsOfHonour,
+    required this.conveners,
+    required this.coordinators,
+    required this.scopeAndObjectives,
+    required this.outcomes,
+    required this.article,
+    required this.reportPdf,
+    required this.studentConveners,
+    required this.studentTeams,
+  });
+
+  factory EventReportData.fromJson(Map<String, dynamic> json) {
+    final teams = Map<String, dynamic>.from(json['studentTeams'] ?? {});
+    return EventReportData(
+      guestsOfHonour: json['guestsOfHonour'] as String? ?? '',
+      conveners: json['conveners'] as String? ?? '',
+      coordinators: json['coordinators'] as String? ?? '',
+      scopeAndObjectives: json['scopeAndObjectives'] as String? ?? '',
+      outcomes: json['outcomes'] as String? ?? '',
+      article: json['article'] as String? ?? '',
+      reportPdf: json['reportPdf'] as String? ?? '',
+      studentConveners: json['studentConveners'] as String? ?? '',
+      studentTeams: teams.map((key, value) => MapEntry(key, value as String? ?? '')),
+    );
+  }
+}
+
 class HistoricalEvent {
   final int id;
   final int clubId;
@@ -68,6 +107,7 @@ class HistoricalEvent {
   final String description;
   final int volunteersCount;
   final List<String> images;
+  final EventReportData? reportData;
 
   HistoricalEvent({
     required this.id,
@@ -79,6 +119,7 @@ class HistoricalEvent {
     required this.description,
     required this.volunteersCount,
     required this.images,
+    this.reportData,
   });
 
   factory HistoricalEvent.fromJson(Map<String, dynamic> json) {
@@ -92,6 +133,9 @@ class HistoricalEvent {
       description: json['description'] as String,
       volunteersCount: (json['volunteersCount'] as num).toInt(),
       images: List<String>.from(json['images'] ?? []),
+      reportData: json['reportData'] != null
+          ? EventReportData.fromJson(Map<String, dynamic>.from(json['reportData']))
+          : null,
     );
   }
 }

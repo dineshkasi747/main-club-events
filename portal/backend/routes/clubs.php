@@ -52,6 +52,7 @@ elseif (preg_match('#^/clubs/(\d+)$#', $path, $matches) && $method === 'GET') {
         $h['clubId'] = (int)$h['clubId'];
         $h['volunteersCount'] = (int)$h['volunteersCount'];
         $h['images'] = json_decode($h['images'], true) ?: [];
+        $h['reportData'] = isset($h['report_data']) ? json_decode($h['report_data'], true) : null;
     }
 
     $matchedClub['upcomingEvents'] = $upcomingEvents;

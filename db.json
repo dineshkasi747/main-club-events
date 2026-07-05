@@ -317,7 +317,9 @@
       "description": "A hands-on version control and collaborative platform workshop designed exclusively for students to understand branching, pull requests, and open source.",
       "volunteersCount": 15,
       "images": [
-        "https://images.unsplash.com/photo-1618401471353-b98aedd07871?w=500&auto=format&fit=crop"
+        "assets/aiclub/images/6.1.jpg",
+        "assets/aiclub/images/6.2.jpg",
+        "assets/aiclub/images/6.3.jpg"
       ]
     },
     {
@@ -330,7 +332,85 @@
       "description": "An interactive session exploring generative AI tools for code completion, image synthesis, and layout design acceleration.",
       "volunteersCount": 8,
       "images": [
-        "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=500&auto=format&fit=crop"
+        "assets/aiclub/images/7.1.jpg",
+        "assets/aiclub/images/7.2.jpg",
+        "assets/aiclub/images/7.3.jpg",
+        "assets/aiclub/images/7.4.jpg"
+      ]
+    },
+    {
+      "id": 2303,
+      "clubId": 104,
+      "academicYear": "2024-25",
+      "title": "AI Club Inauguration",
+      "date": "Oct 05, 2024",
+      "venue": "Main Auditorium",
+      "description": "The AI Club at GVPCE(A) marked its revival with a grand inauguration on October 5th, 2024, attended by distinguished faculty including Dr. A. Syamsundar, Vice Principal, and other department heads. The event featured engaging activities like the Code Crackdown Quiz and Turing Test Challenge, where students tested their technical knowledge and AI understanding. The club's leadership, K. Anil Kumar (President) and N. Renu Sriya (Secretary) outlined their vision for fostering innovation and learning in AI, setting a strong foundation for future activities.",
+      "volunteersCount": 10,
+      "images": [
+        "assets/aiclub/images/1.1.png",
+        "assets/aiclub/images/1.2.png",
+        "assets/aiclub/images/1.3.png"
+      ]
+    },
+    {
+      "id": 2304,
+      "clubId": 104,
+      "academicYear": "2024-25",
+      "title": "AI and DL Workshop",
+      "date": "Dec 05, 2024",
+      "venue": "Online (Google Meet)",
+      "description": "The AI Club of GVPCE successfully organized a highly informative and interactive Deep Learning and Artificial Intelligence Session on 20th & 21st December 2024 through Google Meet. The session was delivered by Mr. Sandeep Vissapragada, an alumnus of our college currently pursuing M.Tech at IIT Bhilai. The two-day session provided a structured and in-depth exploration of key concepts in Deep Learning and AI. The first day began with an introduction to Artificial Intelligence, its evolution over the years, and its impact on multiple industries. Participants were guided through the fundamentals of neural networks, activation functions, and optimization techniques, giving them a strong conceptual foundation.",
+      "volunteersCount": 8,
+      "images": [
+        "assets/aiclub/images/3.1.1.jpg",
+        "assets/aiclub/images/4.2.jpg",
+        "assets/aiclub/images/4.3.jpg"
+      ]
+    },
+    {
+      "id": 2305,
+      "clubId": 104,
+      "academicYear": "2024-25",
+      "title": "Introduction to LLM",
+      "date": "Dec 09, 2024",
+      "venue": "Seminar Hall",
+      "description": "Guest lecture by Dr. Eduri Raja speech on Large Language Models (LLMs) highlighted their transformative role in modern Artificial Intelligence, emphasizing their importance in enhancing natural language understanding and generation. He discussed how neural networks form the backbone of LLMs, enabling them to process and learn complex patterns from vast amounts of text data. Dr. Raja also covered core concepts of Natural Language Processing (NLP), such as tokenization, attention mechanisms, and language modeling, illustrating how these techniques power applications ranging from machine translation to conversational AI. His insights underscored the growing impact of LLMs in various industries, shaping the future of human-computer interaction and data analysis.",
+      "volunteersCount": 12,
+      "images": [
+        "assets/aiclub/images/3.1.jpg",
+        "assets/aiclub/images/3.2.jpg",
+        "assets/aiclub/images/3.3.jpg"
+      ]
+    },
+    {
+      "id": 2306,
+      "clubId": 104,
+      "academicYear": "2024-25",
+      "title": "Python Session",
+      "date": "Dec 10, 2024",
+      "venue": "IBM Lab",
+      "description": "The Python workshop provided participants with a comprehensive introduction to Python programming. It covered key topics such as basic syntax, data types, control flow (if-else, loops), and functions. Additionally, the workshop explored more advanced concepts like object-oriented programming, handling libraries, and practical applications in data analysis and web development. The session included hands-on coding exercises, aimed at reinforcing the theoretical concepts through real-world examples. Whether for beginners or those with some programming experience, the workshop offered valuable insights into Python versatility and its potential in various domains.",
+      "volunteersCount": 15,
+      "images": [
+        "assets/aiclub/images/2.3.jpg",
+        "assets/aiclub/images/2.2.jpg",
+        "assets/aiclub/images/2.1.jpg"
+      ]
+    },
+    {
+      "id": 2307,
+      "clubId": 104,
+      "academicYear": "2024-25",
+      "title": "DSA Session",
+      "date": "Jan 04, 2025",
+      "venue": "IBM Lab",
+      "description": "The AI Club of GVPCE organized an enriching session titled “DSA Fundamentals: Learn, Code, Conquer” on 4th January 2025 at the IBM Lab. The event was designed to help students strengthen their understanding of Data Structures and Algorithms (DSA) and inspire them to build problem-solving skills essential for programming and competitive coding. The session was led by Raghunadh, Vice President of the AI Club, who delivered an insightful and interactive talk on the fundamentals of DSA. Complex concepts were explained in a simplified manner, enabling juniors and beginners to grasp the core principles with ease.",
+      "volunteersCount": 14,
+      "images": [
+        "assets/aiclub/images/5.1.png",
+        "assets/aiclub/images/5.2.png",
+        "assets/aiclub/images/5.3.png"
       ]
     }
   ],

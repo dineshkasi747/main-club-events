@@ -8,6 +8,7 @@ let subTab = 'paid';
 let events = [];
 let registrations = [];
 let selectedEventDetails = null;
+let activeEventToCloseId = null;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -130,7 +131,7 @@ async function fetchDashboardData() {
             events = await evRes.json();
             // filter to only events of the logged in president's club (if user is president)
             if (user.role === 'president') {
-                events = events.filter(e => e.clubId === user.clubId);
+                events = events.filter(e => Number(e.clubId) === Number(user.clubId));
             }
             renderEventsGrid();
         }
@@ -141,18 +142,18 @@ async function fetchDashboardData() {
             registrations = await regRes.json();
             // filter registrations scoped to president
             if (user.role === 'president') {
-                registrations = registrations.filter(r => r.eventClubId === user.clubId);
+                registrations = registrations.filter(r => Number(r.eventClubId) === Number(user.clubId));
             }
             renderStats();
             renderVerificationsTable();
         }
 
         // Fetch past historical events
-        const pastEvRes = await fetch(`${API_BASE}/historical-events`);
+        const pastEvRes = await fetch(`${API_BASE}/historical-events`, { headers });
         if (pastEvRes.ok) {
             let pastEventsList = await pastEvRes.json();
             if (user.role === 'president') {
-                pastEventsList = pastEventsList.filter(e => e.clubId === user.clubId);
+                pastEventsList = pastEventsList.filter(e => Number(e.clubId) === Number(user.clubId));
             }
             renderPastEventsGrid(pastEventsList);
         }
@@ -347,6 +348,12 @@ function renderEventsGrid() {
                 </div>
                 <button class="btn btn-outline" style="width: 100%; margin-top: 12px;" onclick="openRegistrantsModal(${e.id})">
                     📊 Manage Registrants
+                </button>
+                <button class="btn btn-danger" style="width: 100%; margin-top: 8px;" onclick="closeAndArchiveEvent(${e.id})">
+                    🔒 Close & Upload Report
+                </button>
+                <button class="btn btn-warning" style="width: 100%; margin-top: 8px; background-color: #d97706; color: white; border: none;" onclick="closeEventDirectly(${e.id})">
+                    🔒 Close Event (Direct)
                 </button>
             </div>
         `;
@@ -884,6 +891,66 @@ function togglePastEventForm(show) {
     if (formCard) formCard.style.display = show ? 'block' : 'none';
 }
 
+// Cancel past event form — reset edit mode
+function cancelPastEventForm() {
+    const idField = document.getElementById('past-event-id');
+    if (idField) idField.value = '';
+    const titleEl = document.getElementById('past-event-form-title');
+    if (titleEl) titleEl.innerText = 'Upload Past / Historical Event';
+    const submitBtn = document.getElementById('past-event-submit-btn');
+    if (submitBtn) submitBtn.innerText = 'Upload Past Event';
+    const form = document.getElementById('past-event-creation-form');
+    if (form) form.reset();
+    togglePastEventForm(false);
+}
+
+// Open Edit mode for an existing past event
+function openEditPastEvent(eventObj) {
+    // Switch to past events sub-tab
+    switchEventSubTab('past');
+    togglePastEventForm(true);
+
+    // Mark as edit mode
+    document.getElementById('past-event-id').value = eventObj.id;
+    document.getElementById('past-event-form-title').innerText = '✏️ Edit Past Event';
+    document.getElementById('past-event-submit-btn').innerText = 'Save Changes';
+
+    // Fill basic fields
+    document.getElementById('past-event-title').value = eventObj.title || '';
+    document.getElementById('past-event-year').value = eventObj.academicYear || '';
+    document.getElementById('past-event-desc').value = eventObj.description || '';
+    document.getElementById('past-event-date').value = eventObj.date || '';
+    document.getElementById('past-event-venue').value = eventObj.venue || '';
+    document.getElementById('past-event-vols').value = eventObj.volunteersCount || 0;
+    const imagesArr = Array.isArray(eventObj.images) ? eventObj.images : [];
+    document.getElementById('past-event-images').value = imagesArr.join(', ');
+
+    // Fill report data fields if available
+    const r = eventObj.reportData || eventObj.report_data || {};
+    const rd = typeof r === 'string' ? JSON.parse(r) : r;
+    if (rd) {
+        document.getElementById('past-event-guests').value = rd.guestsOfHonour || '';
+        document.getElementById('past-event-conveners').value = rd.conveners || '';
+        document.getElementById('past-event-coordinators').value = rd.coordinators || '';
+        document.getElementById('past-event-scope').value = rd.scopeAndObjectives || '';
+        document.getElementById('past-event-outcomes').value = rd.outcomes || '';
+        document.getElementById('past-event-article').value = rd.article || '';
+        document.getElementById('past-event-pdf-link').value = rd.reportPdf || '';
+        document.getElementById('past-student-conveners').value = rd.studentConveners || '';
+        const st = rd.studentTeams || {};
+        document.getElementById('past-team-organizers').value = st.organizers || '';
+        document.getElementById('past-team-canvassing').value = st.canvassing || '';
+        document.getElementById('past-team-posters').value = st.posterMaking || '';
+        document.getElementById('past-team-photography').value = st.photography || '';
+        document.getElementById('past-team-social').value = st.socialMedia || '';
+        document.getElementById('past-team-technical').value = st.technicalManagement || '';
+        document.getElementById('past-team-volunteers').value = st.volunteers || '';
+    }
+
+    // Scroll to form
+    document.getElementById('past-event-form-card').scrollIntoView({ behavior: 'smooth' });
+}
+
 // Past Event creation form submit
 const pastEventCreationForm = document.getElementById('past-event-creation-form');
 if (pastEventCreationForm) {
@@ -900,32 +967,88 @@ if (pastEventCreationForm) {
         const volunteersCount = parseInt(document.getElementById('past-event-vols').value) || 0;
         const images = document.getElementById('past-event-images').value.trim();
 
+        const guests = document.getElementById('past-event-guests').value.trim();
+        const conveners = document.getElementById('past-event-conveners').value.trim();
+        const coordinators = document.getElementById('past-event-coordinators').value.trim();
+        const scope = document.getElementById('past-event-scope').value.trim();
+        const outcomes = document.getElementById('past-event-outcomes').value.trim();
+        const article = document.getElementById('past-event-article').value.trim();
+        const pdfLink = document.getElementById('past-event-pdf-link').value.trim();
+        const studentConveners = document.getElementById('past-student-conveners').value.trim();
+        const teamOrganizers = document.getElementById('past-team-organizers').value.trim();
+        const teamCanvassing = document.getElementById('past-team-canvassing').value.trim();
+        const teamPosters = document.getElementById('past-team-posters').value.trim();
+        const teamPhotography = document.getElementById('past-team-photography').value.trim();
+        const teamSocial = document.getElementById('past-team-social').value.trim();
+        const teamTechnical = document.getElementById('past-team-technical').value.trim();
+        const teamVolunteers = document.getElementById('past-team-volunteers').value.trim();
+
+        const reportData = {
+            guestsOfHonour: guests,
+            conveners: conveners,
+            coordinators: coordinators,
+            scopeAndObjectives: scope,
+            outcomes: outcomes,
+            article: article,
+            reportPdf: pdfLink,
+            studentConveners: studentConveners,
+            studentTeams: {
+                organizers: teamOrganizers,
+                canvassing: teamCanvassing,
+                posterMaking: teamPosters,
+                photography: teamPhotography,
+                socialMedia: teamSocial,
+                technicalManagement: teamTechnical,
+                volunteers: teamVolunteers
+            }
+        };
+
         let clubId = null;
         if (user.role === 'admin') {
             const selectEl = document.getElementById('past-event-club-select');
             if (selectEl) clubId = parseInt(selectEl.value);
         }
 
+        // Determine if we're in edit mode
+        const editId = document.getElementById('past-event-id').value.trim();
+        const isEditMode = editId !== '';
+
         try {
-            const res = await fetch(`${API_BASE}/historical-events`, {
-                method: 'POST',
+            const url = isEditMode
+                ? `${API_BASE}/historical-events/${editId}`
+                : `${API_BASE}/historical-events`;
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    title, academicYear, description, date, venue, volunteersCount, images, clubId
+                    title, academicYear, description, date, venue, volunteersCount, images, clubId,
+                    reportData: reportData
                 })
             });
 
             if (res.ok) {
-                pastEventCreationForm.reset();
-                togglePastEventForm(false);
+                if (!isEditMode && activeEventToCloseId) {
+                    try {
+                        await fetch(`${API_BASE}/events/${activeEventToCloseId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                    } catch (delErr) {
+                        console.error("Failed to delete active event after archiving:", delErr);
+                    }
+                    activeEventToCloseId = null;
+                }
+                cancelPastEventForm();
                 fetchDashboardData();
             } else {
                 const err = await res.json();
                 if (formAlert) {
-                    formAlert.innerText = err.error || 'Failed to upload past event';
+                    formAlert.innerText = err.error || (isEditMode ? 'Failed to update past event' : 'Failed to upload past event');
                     formAlert.style.display = 'block';
                 }
             }
@@ -960,6 +1083,9 @@ function renderPastEventsGrid(pastEvents) {
             `;
         }
 
+        // Store event data as JSON for the edit button
+        const safeEventJson = encodeURIComponent(JSON.stringify(e));
+
         const cardHtml = `
             <div class="card event-card">
                 <div>
@@ -967,7 +1093,14 @@ function renderPastEventsGrid(pastEvents) {
                         <span class="badge" style="background-color: var(--color-brand-light); color: var(--color-brand);">
                             🎓 Year: ${e.academicYear}
                         </span>
-                        <span class="badge badge-approved" style="background-color: #F1F5F9; color: #475569;">PAST TENURE</span>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <span class="badge badge-approved" style="background-color: #F1F5F9; color: #475569;">PAST TENURE</span>
+                            <button
+                                onclick="openEditPastEvent(JSON.parse(decodeURIComponent('${safeEventJson}')))"
+                                style="background: var(--color-brand); color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                                ✏️ Edit
+                            </button>
+                        </div>
                     </div>
                     <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">${e.title}</h3>
                     <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">${e.description}</p>
@@ -983,4 +1116,62 @@ function renderPastEventsGrid(pastEvents) {
         `;
         container.innerHTML += cardHtml;
     });
+}
+
+function closeAndArchiveEvent(eventId) {
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+
+    if (!confirm(`Are you sure you want to close "${ev.title}"? This will remove it from active events and open the past event report form to archive it.`)) {
+        return;
+    }
+
+    activeEventToCloseId = eventId;
+
+    // Switch to Past Events tab
+    switchEventSubTab('past');
+    
+    // Open the Past Event form
+    togglePastEventForm(true);
+
+    // Pre-fill the past event form fields
+    document.getElementById('past-event-title').value = ev.title;
+    document.getElementById('past-event-desc').value = ev.description;
+    document.getElementById('past-event-venue').value = ev.venue;
+    document.getElementById('past-event-date').value = ev.dateString;
+    document.getElementById('past-event-images').value = ev.imagePath;
+
+    // Calculate volunteers from registrations
+    const vols = registrations.filter(r => r.eventId === eventId && r.type === 'volunteer' && r.status !== 'cancelled').length;
+    document.getElementById('past-event-vols').value = vols;
+
+    // Scroll to the form
+    document.getElementById('past-event-form-card').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function closeEventDirectly(eventId) {
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+
+    if (!confirm(`Are you sure you want to close "${ev.title}"? This will immediately move it to past events and remove it from active events without requiring a detailed PDF report.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/events/${eventId}/close`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+            alert(`Event "${ev.title}" has been successfully closed and archived.`);
+            fetchDashboardData();
+        } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to close event');
+        }
+    } catch (err) {
+        console.error("Failed to close event:", err);
+        alert('Network communication error');
+    }
 }

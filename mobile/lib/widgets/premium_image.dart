@@ -65,19 +65,74 @@ class PremiumImage extends StatelessWidget {
       ),
     );
 
-    if (url.isEmpty || !url.startsWith('http')) {
+    if (url.isEmpty) {
       return placeholder;
     }
 
-    return ClipRRect(
-      borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
-      child: Image.network(
+    // Local asset image
+    if (url.startsWith('assets/')) {
+      final isLogo = url.toLowerCase().contains('logo');
+      final isIeeeCs = url.toLowerCase().contains('ieee_cs');
+      
+      Widget imageWidget = Image.asset(
         url,
         height: height,
         width: width,
-        fit: fit,
+        fit: isLogo ? BoxFit.contain : fit,
         errorBuilder: (context, error, stackTrace) => placeholder,
-      ),
-    );
+      );
+
+      if (isLogo) {
+        return ClipRRect(
+          borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
+          child: Container(
+            height: height,
+            width: width,
+            color: isIeeeCs ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            padding: const EdgeInsets.all(12.0),
+            child: imageWidget,
+          ),
+        );
+      }
+
+      return ClipRRect(
+        borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
+        child: imageWidget,
+      );
+    }
+
+    // Network image
+    if (url.startsWith('http')) {
+      final isLogo = url.toLowerCase().contains('logo');
+      final isIeeeCs = url.toLowerCase().contains('ieee_cs');
+
+      Widget imageWidget = Image.network(
+        url,
+        height: height,
+        width: width,
+        fit: isLogo ? BoxFit.contain : fit,
+        errorBuilder: (context, error, stackTrace) => placeholder,
+      );
+
+      if (isLogo) {
+        return ClipRRect(
+          borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
+          child: Container(
+            height: height,
+            width: width,
+            color: isIeeeCs ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            padding: const EdgeInsets.all(12.0),
+            child: imageWidget,
+          ),
+        );
+      }
+
+      return ClipRRect(
+        borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
+        child: imageWidget,
+      );
+    }
+
+    return placeholder;
   }
 }

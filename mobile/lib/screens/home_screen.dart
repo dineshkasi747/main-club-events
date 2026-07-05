@@ -37,31 +37,40 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProfileTab(),
     ];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: appState.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)))
-          : SafeArea(child: tabs[_currentIndex]),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF4F46E5),
-        unselectedItemColor: const Color(0xFF94A3B8),
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), activeIcon: Icon(Icons.groups), label: 'Clubs'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_today), label: 'Events'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        setState(() {
+          _currentIndex = 0;
+        });
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: appState.isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)))
+            : SafeArea(child: tabs[_currentIndex]),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF4F46E5),
+          unselectedItemColor: const Color(0xFF94A3B8),
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), activeIcon: Icon(Icons.groups), label: 'Clubs'),
+            BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_today), label: 'Events'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
       ),
     );
   }
@@ -156,11 +165,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     DropdownButtonFormField<int>(
                       value: selectedClubId,
                       decoration: const InputDecoration(labelText: 'Host Club'),
-                      items: const [
-                        DropdownMenuItem(value: 101, child: Text('Tech Brew (Technical)')),
-                        DropdownMenuItem(value: 102, child: Text('Nritya & Raga (Cultural)')),
-                        DropdownMenuItem(value: 103, child: Text('FinEdge & Sports (Sports)')),
-                      ],
+                      items: appState.clubs.map((c) {
+                        String categoryLabel = 'Technical';
+                        if (c.id == 102) categoryLabel = 'Cultural';
+                        if (c.id == 103) categoryLabel = 'Sports';
+                        return DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Text('${c.name} ($categoryLabel)'),
+                        );
+                      }).toList(),
                       onChanged: (val) {
                         if (val != null) {
                           setModalState(() {
@@ -811,6 +824,25 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildPopularClubsHorizontalList(List<Club> clubs) {
+    String getClubLogo(Club club) {
+      if (club.name.toLowerCase().contains('data science') || club.id == 105) {
+        return 'assets/dsclub/images/DSlogo.jpg';
+      }
+      if (club.id == 104) {
+        return 'assets/aiclub/images/logo2.png';
+      }
+      if (club.id == 101) {
+        return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200';
+      }
+      if (club.id == 102) {
+        return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200';
+      }
+      if (club.id == 106) {
+        return 'assets/ieee_cs/images/logo.png';
+      }
+      return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=200';
+    }
+
     return SizedBox(
       height: 140,
       child: ListView.builder(
@@ -819,12 +851,7 @@ class _HomeTabState extends State<HomeTab> {
         itemCount: clubs.length,
         itemBuilder: (context, index) {
           final club = clubs[index];
-          final clubImages = [
-            'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=200&auto=format&fit=crop',
-          ];
-          final imgUrl = clubImages[index % clubImages.length];
+          final imgUrl = getClubLogo(club);
 
           // For demo, first and third clubs are marked "Joined", second is "Join"
           final bool isJoined = index != 1;
@@ -839,46 +866,58 @@ class _HomeTabState extends State<HomeTab> {
                 borderRadius: BorderRadius.circular(16),
                 side: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundImage: NetworkImage(imgUrl),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      club.name.split(' ')[0],
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      '${club.membersCount} Members',
-                      style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      height: 22,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: isJoined ? const Color(0xFFEEF2F6) : const Color(0xFF4F46E5),
-                        borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ClubDetailScreen(club: club)),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: const Color(0xFFEEF2F6),
+                        backgroundImage: imgUrl.startsWith('assets/')
+                            ? AssetImage(imgUrl) as ImageProvider
+                            : NetworkImage(imgUrl),
                       ),
-                      child: Center(
-                        child: Text(
-                          isJoined ? 'Joined' : 'Join',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: isJoined ? const Color(0xFF4F46E5) : Colors.white,
+                      const SizedBox(height: 6),
+                      Text(
+                        club.name.split(' ')[0],
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${club.membersCount} Members',
+                        style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 22,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isJoined ? const Color(0xFFEEF2F6) : const Color(0xFF4F46E5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            isJoined ? 'Joined' : 'Join',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: isJoined ? const Color(0xFF4F46E5) : Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1196,24 +1235,50 @@ class _ClubsTabState extends State<ClubsTab> {
     final appState = Provider.of<AppState>(context);
     final clubs = appState.clubs;
 
-    // Helper to get category for each club dynamically based on ID
-    String getClubCategory(int clubId) {
-      if (clubId == 101 || clubId == 104) return 'Technology';
-      if (clubId == 102) return 'Arts & Creative';
+    // Helper to get category for each club dynamically based on name/ID
+    String getClubCategory(Club club) {
+      if (club.name.toLowerCase().contains('data science') || club.id == 105) return 'Technology';
+      if (club.id == 101 || club.id == 104 || club.id == 106) return 'Technology';
+      if (club.id == 102) return 'Arts & Creative';
       return 'Sports';
     }
 
-    // Helper to get Unsplash banner for each club category
-    String getClubBanner(int clubId) {
-      if (clubId == 101) {
-        return 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400&auto=format&fit=crop';
-      } else if (clubId == 104) {
-        return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=400&auto=format&fit=crop';
-      } else if (clubId == 102) {
-        return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop';
+    // Helper to get Unsplash/Asset banner for each club category
+    String getClubBanner(Club club) {
+      if (club.name.toLowerCase().contains('data science') || club.id == 105) {
+        return 'assets/dsclub/images/DSlogo.jpg';
+      }
+      if (club.id == 101) {
+        return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400';
+      } else if (club.id == 104) {
+        return 'assets/aiclub/images/logo2.png';
+      } else if (club.id == 102) {
+        return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+      } else if (club.id == 106) {
+        return 'assets/ieee_cs/images/logo.png';
       } else {
         return 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=400&auto=format&fit=crop';
       }
+    }
+
+    // Helper to get fast-loading club logos (local assets or Unsplash)
+    String getClubLogo(Club club) {
+      if (club.name.toLowerCase().contains('data science') || club.id == 105) {
+        return 'assets/dsclub/images/DSlogo.jpg';
+      }
+      if (club.id == 104) {
+        return 'assets/aiclub/images/logo2.png';
+      }
+      if (club.id == 101) {
+        return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200';
+      }
+      if (club.id == 102) {
+        return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200';
+      }
+      if (club.id == 106) {
+        return 'assets/ieee_cs/images/logo.png';
+      }
+      return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=200';
     }
 
     // Filter list
@@ -1221,7 +1286,7 @@ class _ClubsTabState extends State<ClubsTab> {
       final matchesSearch = club.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           club.description.toLowerCase().contains(_searchQuery.toLowerCase());
       
-      final cat = getClubCategory(club.id);
+      final cat = getClubCategory(club);
       final matchesCategory = _selectedCategory == 'All Clubs' || cat == _selectedCategory;
 
       return matchesSearch && matchesCategory;
@@ -1326,26 +1391,33 @@ class _ClubsTabState extends State<ClubsTab> {
 
         // Grid View of Clubs
         Expanded(
-          child: filtered.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No clubs match your query.',
-                    style: TextStyle(color: Color(0xFF94A3B8)),
-                  ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.64,
-                  ),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
+          child: RefreshIndicator(
+            onRefresh: () => appState.fetchAllData(),
+            child: filtered.isEmpty
+                ? const SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Center(
+                      heightFactor: 4.0,
+                      child: Text(
+                        'No clubs match your query.',
+                        style: TextStyle(color: Color(0xFF94A3B8)),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.64,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
                     final club = filtered[index];
-                    final catName = getClubCategory(club.id);
-                    final banner = getClubBanner(club.id);
+                    final catName = getClubCategory(club);
+                    final banner = getClubBanner(club);
 
                     return Card(
                       color: Colors.white,
@@ -1474,6 +1546,7 @@ class _ClubsTabState extends State<ClubsTab> {
                     );
                   },
                 ),
+          ),
         ),
       ],
     );
@@ -1533,10 +1606,13 @@ class _EventsTabState extends State<EventsTab> {
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
+          child: RefreshIndicator(
+            onRefresh: () => appState.fetchAllData(),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
               final event = filtered[index];
               return Card(
                 color: Colors.white,
@@ -1600,8 +1676,9 @@ class _EventsTabState extends State<EventsTab> {
             },
           ),
         ),
-      ],
-    );
+      ),
+    ],
+  );
   }
 }
 

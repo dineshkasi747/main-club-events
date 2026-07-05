@@ -13,10 +13,7 @@ import '../models/registration.dart';
 class AppState extends ChangeNotifier {
   // Automatically resolve 10.0.2.2 for Android emulator, localhost for others
   static String get baseUrl {
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.148.222.209:8080/college/portal/backend/api.php';
-    }
-    return 'http://localhost:8080/college/portal/backend/api.php';
+    return 'https://gvp-college-portal.loca.lt/college/portal/backend/api.php';
   }
 
   static final List<Club> _defaultClubs = [
@@ -51,6 +48,22 @@ class AppState extends ChangeNotifier {
       presidentName: "Kalyan Ram",
       membersCount: 350,
       members: const ["Raghunadh", "Kalyan Ram", "Harsha", "Sandeep", "Sai Krishna"],
+    ),
+    Club(
+      id: 105,
+      name: "Data Science Club",
+      description: "The official Data Science club of GVPCE(A). We organize workshops on machine learning, competitive data sprints, and dashboard development challenges.",
+      presidentName: "G. Surya Chaitanya",
+      membersCount: 320,
+      members: const ["A. Geethika", "K.J.S.S. Manohar", "Ch. Surya Teja", "D.Y.N. Nandhitha", "R. Naga Sai Nikhil"],
+    ),
+    Club(
+      id: 106,
+      name: "IEEE Computer Society",
+      description: "We empower people in technical advancement by delivering tools for individuals at all stages of their careers. As a professional chapter, we aid technology professionals stay active, involved, and engaged.",
+      presidentName: "Mukalla Pallavi",
+      membersCount: 180,
+      members: const ["Sandra Rishitha M", "B N V Hemanth", "B Harika"],
     ),
   ];
 
@@ -118,6 +131,38 @@ class AppState extends ChangeNotifier {
       volunteerLimit: 0,
       status: "active",
       imagePath: "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=600&auto=format&fit=crop&q=80",
+    ),
+    Event(
+      id: 1005,
+      clubId: 105,
+      title: "Squid-O-Quiz",
+      description: "A thrilling data science quiz competition with rounds on statistics, probability, machine learning, and data interpretation.",
+      venue: "Lab 5, CSE Block",
+      dateString: "Nov 20, 2026 @ 10:00 AM",
+      price: 0.0,
+      capacity: 150,
+      freeRegistration: true,
+      paidRegistration: false,
+      volunteerRegistration: true,
+      volunteerLimit: 10,
+      status: "active",
+      imagePath: "assets/dsclub/posters/soq_poster.jpeg",
+    ),
+    Event(
+      id: 1006,
+      clubId: 106,
+      title: "Quantum Computing Seminar",
+      description: "An introductory session on Quantum Computing, qubits, quantum gates, and future applications in cryptography and optimization.",
+      venue: "Seminar Hall 1",
+      dateString: "Nov 12, 2026 @ 10:00 AM",
+      price: 0.0,
+      capacity: 150,
+      freeRegistration: true,
+      paidRegistration: false,
+      volunteerRegistration: true,
+      volunteerLimit: 10,
+      status: "active",
+      imagePath: "assets/ieee_cs/posters/clash_of_minds.jpg",
     ),
   ];
 
@@ -258,7 +303,9 @@ class AppState extends ChangeNotifier {
       description: "A hands-on version control and collaborative platform workshop designed exclusively for students to understand branching, pull requests, and open source.",
       volunteersCount: 15,
       images: const [
-        "https://images.unsplash.com/photo-1618401471353-b98aedd07871?w=500&auto=format&fit=crop"
+        "assets/aiclub/images/6.1.jpg",
+        "assets/aiclub/images/6.2.jpg",
+        "assets/aiclub/images/6.3.jpg"
       ],
     ),
     HistoricalEvent(
@@ -271,8 +318,207 @@ class AppState extends ChangeNotifier {
       description: "An interactive session exploring generative AI tools for code completion, image synthesis, and layout design acceleration.",
       volunteersCount: 8,
       images: const [
-        "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=500&auto=format&fit=crop"
+        "assets/aiclub/images/7.1.jpg",
+        "assets/aiclub/images/7.2.jpg",
+        "assets/aiclub/images/7.3.jpg",
+        "assets/aiclub/images/7.4.jpg"
       ],
+    ),
+    HistoricalEvent(
+      id: 2303,
+      clubId: 104,
+      academicYear: "2024-25",
+      title: "AI Club Inauguration",
+      date: "Oct 05, 2024",
+      venue: "Main Auditorium",
+      description: "The AI Club at GVPCE(A) marked its revival with a grand inauguration on October 5th, 2024, attended by distinguished faculty including Dr. A. Syamsundar, Vice Principal, and other department heads. The event featured engaging activities like the Code Crackdown Quiz and Turing Test Challenge, where students tested their technical knowledge and AI understanding. The club's leadership, K. Anil Kumar (President) and N. Renu Sriya (Secretary) outlined their vision for fostering innovation and learning in AI, setting a strong foundation for future activities.",
+      volunteersCount: 10,
+      images: const [
+        "assets/aiclub/images/1.1.png",
+        "assets/aiclub/images/1.2.png",
+        "assets/aiclub/images/1.3.png"
+      ],
+    ),
+    HistoricalEvent(
+      id: 2304,
+      clubId: 104,
+      academicYear: "2024-25",
+      title: "AI and DL Workshop",
+      date: "Dec 05, 2024",
+      venue: "Online (Google Meet)",
+      description: "The AI Club of GVPCE successfully organized a highly informative and interactive Deep Learning and Artificial Intelligence Session on 20th & 21st December 2024 through Google Meet. The session was delivered by Mr. Sandeep Vissapragada, an alumnus of our college currently pursuing M.Tech at IIT Bhilai. The two-day session provided a structured and in-depth exploration of key concepts in Deep Learning and AI. The first day began with an introduction to Artificial Intelligence, its evolution over the years, and its impact on multiple industries. Participants were guided through the fundamentals of neural networks, activation functions, and optimization techniques, giving them a strong conceptual foundation.",
+      volunteersCount: 8,
+      images: const [
+        "assets/aiclub/images/3.1.1.jpg",
+        "assets/aiclub/images/4.2.jpg",
+        "assets/aiclub/images/4.3.jpg"
+      ],
+    ),
+    HistoricalEvent(
+      id: 2305,
+      clubId: 104,
+      academicYear: "2024-25",
+      title: "Introduction to LLM",
+      date: "Dec 09, 2024",
+      venue: "Seminar Hall",
+      description: "Guest lecture by Dr. Eduri Raja speech on Large Language Models (LLMs) highlighted their transformative role in modern Artificial Intelligence, emphasizing their importance in enhancing natural language understanding and generation. He discussed how neural networks form the backbone of LLMs, enabling them to process and learn complex patterns from vast amounts of text data. Dr. Raja also covered core concepts of Natural Language Processing (NLP), such as tokenization, attention mechanisms, and language modeling, illustrating how these techniques power applications ranging from machine translation to conversational AI. His insights underscored the growing impact of LLMs in various industries, shaping the future of human-computer interaction and data analysis.",
+      volunteersCount: 12,
+      images: const [
+        "assets/aiclub/images/3.1.jpg",
+        "assets/aiclub/images/3.2.jpg",
+        "assets/aiclub/images/3.3.jpg"
+      ],
+    ),
+    HistoricalEvent(
+      id: 2306,
+      clubId: 104,
+      academicYear: "2024-25",
+      title: "Python Session",
+      date: "Dec 10, 2024",
+      venue: "IBM Lab",
+      description: "The Python workshop provided participants with a comprehensive introduction to Python programming. It covered key topics such as basic syntax, data types, control flow (if-else, loops), and functions. Additionally, the workshop explored more advanced concepts like object-oriented programming, handling libraries, and practical applications in data analysis and web development. The session included hands-on coding exercises, aimed at reinforcing the theoretical concepts through real-world examples. Whether for beginners or those with some programming experience, the workshop offered valuable insights into Python versatility and its potential in various domains.",
+      volunteersCount: 15,
+      images: const [
+        "assets/aiclub/images/2.3.jpg",
+        "assets/aiclub/images/2.2.jpg",
+        "assets/aiclub/images/2.1.jpg"
+      ],
+    ),
+    HistoricalEvent(
+      id: 2307,
+      clubId: 104,
+      academicYear: "2024-25",
+      title: "DSA Session",
+      date: "Jan 04, 2025",
+      venue: "IBM Lab",
+      description: "The AI Club of GVPCE organized an enriching session titled “DSA Fundamentals: Learn, Code, Conquer” on 4th January 2025 at the IBM Lab. The event was designed to help students strengthen their understanding of Data Structures and Algorithms (DSA) and inspire them to build problem-solving skills essential for programming and competitive coding. The session was led by Raghunadh, Vice President of the AI Club, who delivered an insightful and interactive talk on the fundamentals of DSA. Complex concepts were explained in a simplified manner, enabling juniors and beginners to grasp the core principles with ease.",
+      volunteersCount: 14,
+      images: const [
+        "assets/aiclub/images/5.1.png",
+        "assets/aiclub/images/5.2.png",
+        "assets/aiclub/images/5.3.png"
+      ],
+    ),
+    HistoricalEvent(
+      id: 2501,
+      clubId: 105,
+      academicYear: "2024-25",
+      title: "AI Summit",
+      date: "16 DEC 2024",
+      venue: "Main Auditorium",
+      description: "The AI Summit was a highlight of the year, offering an exceptional opportunity to explore artificial intelligence and its groundbreaking applications. Featuring expert speakers like Dr. P. Satya Jayadev, Mr. Santosh Nimmani, and Mr. Raghu Pulaparthi, the event covered diverse topics such as AI agents, machine learning, ethical AI, and its future in automation. Attendees engaged with real-world case studies, learning about AI's impact in sectors like healthcare, finance, and logistics. The summit provided a unique platform for students to interact with industry leaders and gain insights into the future of AI.",
+      volunteersCount: 14,
+      images: const ["assets/dsclub/posters/7.png"],
+    ),
+    HistoricalEvent(
+      id: 2502,
+      clubId: 105,
+      academicYear: "2023-24",
+      title: "AlgoZenith",
+      date: "15 JAN 2023",
+      venue: "Main Auditorium",
+      description: "Mastering advanced algorithms and competitive programming. Join us to explore this domain and enhance your skills alongside fellow enthusiasts.",
+      volunteersCount: 11,
+      images: const ["assets/dsclub/posters/40.jpg"],
+    ),
+    HistoricalEvent(
+      id: 2503,
+      clubId: 105,
+      academicYear: "2024-25",
+      title: "Bug Busters",
+      date: "15 FEB 2025",
+      venue: "Main Auditorium",
+      description: "A high-stakes debugging challenge from the EKATHRA tech fest. Participants raced to fix complex logic errors in a variety of coding languages.",
+      volunteersCount: 10,
+      images: const ["assets/dsclub/posters/DSlogo.jpg"],
+    ),
+    HistoricalEvent(
+      id: 2504,
+      clubId: 105,
+      academicYear: "2024-25",
+      title: "Code Quest",
+      date: "25 NOV 2024",
+      venue: "Main Auditorium",
+      description: "Department of Computer Science & Engineering (Data Science), under the esteemed guidance of Dr.Y. Anuradha, Associate Head of B.Tech CSE (DS), organized a successful event, chaired by Prof. A. B. Koteswara Rao, Principal. The session began with a time limit of 1 hour and 15 minutes for the students to compete among themselves to write a program in the language of their choice to generate the Nth term of a given sequence or progression, like arithmetic or geometric series for 10 questions ranging from Easy, Medium, Hard and Expert. This session is an useful experience for students who want to participate in competitive Coding in future because this gives them an experience with a fun way to learn about The competitive coding contest is perfect for coders of all levels with cash prizes for the top 3 scorers.",
+      volunteersCount: 10,
+      images: const ["assets/dsclub/posters/6.jpg"],
+    ),
+    HistoricalEvent(
+      id: 2601,
+      clubId: 106,
+      academicYear: "2024-25",
+      title: "Clash of Minds",
+      date: "Oct 10, 2024",
+      venue: "Main Seminar Hall",
+      description: "Debate Competition to test public speaking and critical thinking skills.",
+      volunteersCount: 8,
+      images: const ["assets/ieee_cs/posters/clash_of_minds.jpg"],
+    ),
+    HistoricalEvent(
+      id: 2602,
+      clubId: 106,
+      academicYear: "2023-24",
+      title: "Blockchain Workshop",
+      date: "Nov 15, 2023",
+      venue: "Lab 3, Main Block",
+      description: "Hands-on workshop on Blockchain technology and smart contracts.",
+      volunteersCount: 12,
+      images: const ["assets/ieee_cs/posters/blockchain.jpg"],
+    ),
+    HistoricalEvent(
+      id: 2603,
+      clubId: 106,
+      academicYear: "2023-24",
+      title: "Break the Code",
+      date: "Dec 05, 2023",
+      venue: "IBM Lab, CSE Block",
+      description: "Coding competition where participants solve riddles and write code to unlock challenges.",
+      volunteersCount: 10,
+      images: const ["assets/ieee_cs/posters/break_the_code.jpeg"],
+    ),
+    HistoricalEvent(
+      id: 2604,
+      clubId: 106,
+      academicYear: "2022-23",
+      title: "THE CodHER",
+      date: "Mar 08, 2022",
+      venue: "Lab 2, Main Block",
+      description: "A coding competition dedicated for female students to showcase their programming skills.",
+      volunteersCount: 15,
+      images: const ["assets/ieee_cs/posters/codher.jpg"],
+    ),
+    HistoricalEvent(
+      id: 2605,
+      clubId: 106,
+      academicYear: "2022-23",
+      title: "JAM (Just A Minute)",
+      date: "Apr 12, 2022",
+      venue: "Seminar Hall 2",
+      description: "An interactive speech competition where speakers talk on various technical topics for one minute.",
+      volunteersCount: 5,
+      images: const ["assets/ieee_cs/posters/jam.jpeg"],
+    ),
+    HistoricalEvent(
+      id: 2606,
+      clubId: 106,
+      academicYear: "2022-23",
+      title: "Brain Hacks",
+      date: "Sep 20, 2022",
+      venue: "Seminar Hall 1",
+      description: "Aptitude & Reasoning Series designed to boost students' logical thinking and problem-solving skills.",
+      volunteersCount: 8,
+      images: const ["assets/ieee_cs/posters/brain_hacks.jpeg"],
+    ),
+    HistoricalEvent(
+      id: 2607,
+      clubId: 106,
+      academicYear: "2022-23",
+      title: "Machine Learning Workshop",
+      date: "Oct 25, 2022",
+      venue: "IBM Lab",
+      description: "A comprehensive workshop on machine learning models, algorithms, and training techniques.",
+      volunteersCount: 10,
+      images: const ["assets/ieee_cs/posters/ml_workshop.jpeg"],
     ),
   ];
 
