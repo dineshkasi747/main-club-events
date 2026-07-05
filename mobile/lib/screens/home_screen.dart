@@ -844,7 +844,7 @@ class _HomeTabState extends State<HomeTab> {
     }
 
     return SizedBox(
-      height: 140,
+      height: 112,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -852,9 +852,6 @@ class _HomeTabState extends State<HomeTab> {
         itemBuilder: (context, index) {
           final club = clubs[index];
           final imgUrl = getClubLogo(club);
-
-          // For demo, first and third clubs are marked "Joined", second is "Join"
-          final bool isJoined = index != 1;
 
           return Container(
             width: 130,
@@ -896,25 +893,6 @@ class _HomeTabState extends State<HomeTab> {
                       Text(
                         '${club.membersCount} Members',
                         style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 22,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isJoined ? const Color(0xFFEEF2F6) : const Color(0xFF4F46E5),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            isJoined ? 'Joined' : 'Join',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: isJoined ? const Color(0xFF4F46E5) : Colors.white,
-                            ),
-                          ),
-                        ),
                       ),
                     ],
                   ),
