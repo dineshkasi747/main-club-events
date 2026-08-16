@@ -1,4 +1,4 @@
-const API_BASE = window.location.origin + '/college/portal/backend/api.php';
+const API_BASE = window.location.origin + '/backend/api.php';
 
 let token = localStorage.getItem('token');
 let user = JSON.parse(localStorage.getItem('user'));
@@ -203,6 +203,29 @@ function renderStats() {
     if (statsVolunteers) statsVolunteers.innerText = volunteerCount;
 }
 
+// Verification Handler
+function handleVerifyBooking(regId) {
+    showConfirmModal(
+        'Verify Registration',
+        'Are you sure you want to approve this student\'s registration?',
+        async () => {
+            try {
+                const res = await fetch(`${API_BASE}/registrations/${regId}/verify`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    fetchDashboardData();
+                } else {
+                    alert('Failed to verify registration.');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    );
+}
+
 // Broadcast Announcement Form Submit
 const broadcastForm = document.getElementById('broadcast-form');
 if (broadcastForm) {
@@ -330,31 +353,33 @@ function renderEventsGrid() {
         const cardHtml = `
             <div class="card event-card">
                 <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                         <span class="badge" style="background-color: var(--color-brand-light); color: var(--color-brand);">
                             ${e.price > 0 ? `₹${e.price}` : 'FREE'}
                         </span>
                         <span class="badge badge-approved">${e.status}</span>
                     </div>
-                    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">${e.title}</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">${e.description}</p>
+                    <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px;">${e.title}</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px; letter-spacing: -0.16px; font-weight: 400;">${e.description}</p>
                     
                     <div class="event-details-box">
-                        <div>📍 ${e.venue}</div>
-                        <div>📅 ${e.dateString}</div>
-                        <div>👥 Capacity: ${e.capacity} (Booked: ${regCount})</div>
-                        ${e.volunteerRegistration ? `<div style="color: var(--color-success); font-weight: 600;">🤝 Volunteers: ${volCount} / ${e.volunteerLimit} limit</div>` : ''}
+                        <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg> ${e.venue}</div>
+                        <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg> ${e.dateString}</div>
+                        <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Capacity: ${e.capacity} (Booked: ${regCount})</div>
+                        ${e.volunteerRegistration ? `<div style="color: var(--color-success); font-weight: 600;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> Volunteers: ${volCount} / ${e.volunteerLimit} limit</div>` : ''}
                     </div>
                 </div>
-                <button class="btn btn-outline" style="width: 100%; margin-top: 12px;" onclick="openRegistrantsModal(${e.id})">
-                    📊 Manage Registrants
-                </button>
-                <button class="btn btn-danger" style="width: 100%; margin-top: 8px;" onclick="closeAndArchiveEvent(${e.id})">
-                    🔒 Close & Upload Report
-                </button>
-                <button class="btn btn-warning" style="width: 100%; margin-top: 8px; background-color: #d97706; color: white; border: none;" onclick="closeEventDirectly(${e.id})">
-                    🔒 Close Event (Direct)
-                </button>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+                    <button class="btn btn-outline" style="width: 100%;" onclick="openRegistrantsModal(${e.id})">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect width="4" height="7" x="7" y="14" rx="1"></rect><rect width="4" height="12" x="15" y="9" rx="1"></rect></svg> Manage Registrants
+                    </button>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="closeAndArchiveEvent(${e.id})">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Close & Upload Report
+                    </button>
+                    <button class="btn btn-outline" style="width: 100%; color: var(--color-gold); border-color: rgba(201,155,60,0.3);" onclick="closeEventDirectly(${e.id})">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Close Event (Direct)
+                    </button>
+                </div>
             </div>
         `;
         container.innerHTML += cardHtml;
@@ -376,27 +401,27 @@ function renderVerificationsTable() {
 
     pendingBookings.forEach(r => {
         const actionBtn = r.status === 'pending' 
-            ? `<button class="btn btn-success" style="padding: 6px 12px; font-size: 12px; border-radius: 6px;" onclick="handleVerifyBooking(${r.id})">Verify & Approve</button>`
-            : `<span style="font-size: 12px; color: var(--text-muted);">Verified</span>`;
+            ? `<button class="btn btn-success" style="padding: 6px 12px; font-size: 11px; border-radius: 8px;" onclick="handleVerifyBooking(${r.id})">Verify & Approve</button>`
+            : `<span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Verified ✓</span>`;
 
         const paymentSummary = r.paymentAmount > 0
             ? `<div>
-                 <div style="font-weight:700; color:var(--color-success);">₹${parseFloat(r.paymentAmount).toFixed(2)}</div>
-                 <div style="font-size: 11px; font-weight: bold; color: var(--color-brand); margin-top: 4px;">Ref: ${r.upiRefId || r.transactionId}</div>
-                 ${r.paymentScreenshot ? `<button class="btn btn-outline" style="padding: 2px 6px; font-size: 9px; margin-top: 4px;" onclick="zoomScreenshot('${r.paymentScreenshot}')">View Screenshot 🔍</button>` : ''}
+                 <div style="font-family: 'Outfit', sans-serif; font-weight:800; color: var(--color-teal); font-size: 14px;">₹${parseFloat(r.paymentAmount).toFixed(2)}</div>
+                 <div style="font-size: 10px; font-weight: 700; color: var(--color-brand); margin-top: 4px; letter-spacing: 0.3px;">Ref: ${r.upiRefId || r.transactionId}</div>
+                 ${r.paymentScreenshot ? `<button class="btn btn-outline" style="padding: 2px 8px; font-size: 9px; margin-top: 6px;" onclick="zoomScreenshot('${r.paymentScreenshot}')">View Screenshot 🔍</button>` : ''}
                </div>`
-            : '<span style="color: var(--text-secondary);">FREE ENTRY</span>';
+            : '<span style="color: var(--text-muted); font-weight: 500; font-size: 12px;">FREE ENTRY</span>';
 
         const row = `
             <tr>
-                <td style="font-weight: bold;">#${r.id}</td>
+                <td style="font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--color-brand); font-size: 12px;">#${r.id}</td>
                 <td>
-                    <div style="font-weight: 600;">${r.userName}</div>
-                    <div style="font-size: 11px; color: var(--text-secondary);">${r.userRollNumber} • ${r.userBranch}</div>
+                    <div style="font-weight: 600; font-size: 13px;">${r.userName}</div>
+                    <div style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">${r.userRollNumber} • ${r.userBranch}</div>
                 </td>
                 <td>
-                    <div style="font-weight: 600;">${r.eventTitle}</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">${r.eventDate}</div>
+                    <div style="font-weight: 600; font-size: 13px;">${r.eventTitle}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 500;">${r.eventDate}</div>
                 </td>
                 <td>${paymentSummary}</td>
                 <td><span class="badge badge-${r.status}">${r.status}</span></td>
@@ -408,21 +433,27 @@ function renderVerificationsTable() {
 }
 
 // Verify and approve booking
-async function handleVerifyBooking(regId) {
-    if (!confirm("Are you sure you want to verify this payment and approve ticket entry?")) return;
-    try {
-        const res = await fetch(`${API_BASE}/registrations/${regId}/verify`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-            fetchDashboardData();
-        } else {
-            alert("Approval failed");
+function handleVerifyBooking(regId) {
+    showConfirmModal(
+        "Approve Ticket Entry?",
+        "Are you sure you want to verify this payment and approve ticket entry? The student will be notified and receive their digital ticket.",
+        async () => {
+            try {
+                const res = await fetch(`${API_BASE}/registrations/${regId}/verify`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    fetchDashboardData();
+                    // If modal is open, we can refresh it or just let the user see it after
+                } else {
+                    alert("Approval failed");
+                }
+            } catch (err) {
+                alert("Network communication error.");
+            }
         }
-    } catch (err) {
-        alert("Network communication error.");
-    }
+    );
 }
 
 // Zoom receipt photo
@@ -489,9 +520,9 @@ function renderRegistrantsSubTabList() {
     const subtabFree = document.getElementById('subtab-free');
     const subtabVol = document.getElementById('subtab-vol');
 
-    if (subtabPaid) subtabPaid.innerText = `💰 Paid Registrants (${eventPaid.length})`;
-    if (subtabFree) subtabFree.innerText = `🎟️ Free Registrants (${eventFree.length})`;
-    if (subtabVol) subtabVol.innerText = `🤝 Volunteers (${eventVolunteers.length})`;
+    if (subtabPaid) subtabPaid.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: text-bottom;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Paid Registrants (${eventPaid.length})`;
+    if (subtabFree) subtabFree.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: text-bottom;"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M13 5v2"></path><path d="M13 17v2"></path><path d="M13 11v2"></path></svg> Free Registrants (${eventFree.length})`;
+    if (subtabVol) subtabVol.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: text-bottom;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Volunteers (${eventVolunteers.length})`;
 
     let targetList = [];
     if (subTab === 'paid') targetList = eventPaid;
@@ -666,26 +697,45 @@ function renderClubsGrid(clubs) {
     }
 
     clubs.forEach(c => {
+        const colors = [
+            { bg: 'var(--color-linen)', border: 'rgba(201,155,60,0.3)', text: '#7c5f21' },
+            { bg: 'var(--color-lavender)', border: 'rgba(103,58,183,0.3)', text: '#4b2a86' },
+            { bg: 'var(--color-lavender-1)', border: 'rgba(20,158,106,0.3)', text: '#106c49' },
+            { bg: 'var(--color-linen-1)', border: 'rgba(217,96,63,0.3)', text: '#9a4027' },
+            { bg: 'var(--color-lavender-2)', border: 'rgba(59,130,246,0.3)', text: '#1e40af' },
+            { bg: 'var(--color-alice-blue)', border: 'rgba(103,58,183,0.2)', text: '#5b21b6' }
+        ];
+
         const membersList = Array.isArray(c.members) ? c.members : [];
         const membersHtml = membersList.length > 0
-            ? membersList.map(m => `<li>${m}</li>`).join('')
-            : '<span style="font-style: italic; font-size: 12px; color: var(--text-muted);">No members registered yet</span>';
+            ? membersList.map((m, i) => {
+                const color = colors[i % colors.length];
+                return `<div style="background: ${color.bg}; border: 1px solid ${color.border}; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: ${color.text}; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>${m}</div>`;
+            }).join('')
+            : '<span style="font-style: italic; font-size: 12px; color: var(--text-muted); font-weight: 400;">No members registered yet</span>';
 
         const cardHtml = `
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                    <h3 style="font-size: 18px; font-weight: 700; color: var(--color-brand);">${c.name}</h3>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                    <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; color: var(--color-brand); letter-spacing: -0.3px;">${c.name}</h3>
                     <span class="badge" style="background-color: var(--color-brand-light); color: var(--color-brand);">ID: ${c.id}</span>
                 </div>
-                <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">${c.description}</p>
-                <div style="font-size: 13px; color: var(--text-primary); border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 12px;">
-                    👤 <strong>President:</strong> ${c.presidentName} (User ID: ${c.presidentId})
+                <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px; font-weight: 400; letter-spacing: -0.16px;">${c.description}</p>
+                
+                <div style="padding-top: 14px; border-top: 1px solid var(--border-color); margin-top: 14px; margin-bottom: 14px;">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">President</span>
+                    <div style="background: var(--color-dark-khaki); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 600; color: #fff; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-low-2);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        ${c.presidentName} 
+                        <span style="font-size: 12px; opacity: 0.8; font-weight: 500; margin-left: 4px;">(ID: ${c.presidentId})</span>
+                    </div>
                 </div>
-                <div style="font-size: 13px;">
-                    👥 <strong>Members Count:</strong> ${c.membersCount}
-                    <ul style="margin: 8px 0 0 16px; padding: 0; font-size: 12px; color: var(--text-secondary);">
+
+                <div>
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Members (${c.membersCount})</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start;">
                         ${membersHtml}
-                    </ul>
+                    </div>
                 </div>
             </div>
         `;
@@ -708,10 +758,10 @@ function generateEventReport() {
     const pendingRevenue = pendingParticipants.reduce((sum, r) => sum + parseFloat(r.paymentAmount), 0);
     
     const reportHtml = `
-        <div class="print-section" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+        <div class="print-section" style="font-family: 'Inter', sans-serif;">
             <div style="text-align: center; margin-bottom: 24px; border-bottom: 2px solid var(--color-brand); padding-bottom: 16px;">
-                <h1 style="color: var(--color-brand); margin-bottom: 4px; font-weight: 800;">GVP College Clubs & Events</h1>
-                <p style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Official Event Progress Report</p>
+                <h1 style="font-family: 'Outfit', sans-serif; color: var(--color-brand); margin-bottom: 4px; font-weight: 800; letter-spacing: -0.6px;">GVP College Clubs & Events</h1>
+                <p style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 1.1px;">Official Event Progress Report</p>
             </div>
             
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
@@ -826,7 +876,7 @@ function printReport() {
     printWindow.document.write(`
         <style>
             body {
-                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-family: 'Inter', sans-serif;
                 background-color: white !important;
                 color: black !important;
                 padding: 40px;
@@ -1089,26 +1139,26 @@ function renderPastEventsGrid(pastEvents) {
         const cardHtml = `
             <div class="card event-card">
                 <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span class="badge" style="background-color: var(--color-brand-light); color: var(--color-brand);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span class="badge" style="background-color: var(--color-gold-light); color: var(--color-gold);">
                             🎓 Year: ${e.academicYear}
                         </span>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <span class="badge badge-approved" style="background-color: #F1F5F9; color: #475569;">PAST TENURE</span>
+                            <span class="badge" style="background-color: var(--bg-elevated); color: var(--text-secondary);">PAST TENURE</span>
                             <button
                                 onclick="openEditPastEvent(JSON.parse(decodeURIComponent('${safeEventJson}')))"
-                                style="background: var(--color-brand); color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer;">
-                                ✏️ Edit
+                                class="btn btn-primary" style="padding: 4px 14px; font-size: 11px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg> Edit
                             </button>
                         </div>
                     </div>
-                    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">${e.title}</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">${e.description}</p>
+                    <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px;">${e.title}</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 16px; font-weight: 400; letter-spacing: -0.16px;">${e.description}</p>
                     
                     <div class="event-details-box">
-                        <div>📍 ${e.venue}</div>
-                        <div>📅 Date: ${e.date}</div>
-                        <div style="color: var(--color-brand); font-weight: 600;">🤝 Volunteers: ${e.volunteersCount} staff</div>
+                        <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg> ${e.venue}</div>
+                        <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg> Date: ${e.date}</div>
+                        <div style="color: var(--color-success); font-weight: 600;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> Volunteers: ${e.volunteersCount} staff</div>
                     </div>
                     ${imagesHtml}
                 </div>
@@ -1153,11 +1203,11 @@ async function closeEventDirectly(eventId) {
     const ev = events.find(e => e.id === eventId);
     if (!ev) return;
 
-    if (!confirm(`Are you sure you want to close "${ev.title}"? This will immediately move it to past events and remove it from active events without requiring a detailed PDF report.`)) {
-        return;
-    }
-
-    try {
+    showConfirmModal(
+        'Close Event?',
+        `Are you sure you want to close "${ev.title}"? This will immediately move it to past events and remove it from active events without requiring a detailed PDF report.`,
+        async () => {
+            try {
         const res = await fetch(`${API_BASE}/events/${eventId}/close`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -1174,4 +1224,33 @@ async function closeEventDirectly(eventId) {
         console.error("Failed to close event:", err);
         alert('Network communication error');
     }
+        }
+    );
+}
+
+// ── CUSTOM CONFIRMATION MODAL LOGIC ──────────────────────────────
+let confirmActionCallback = null;
+
+function showConfirmModal(title, desc, onConfirm) {
+    const modal = document.getElementById('confirm-modal');
+    if (!modal) return;
+    
+    document.getElementById('confirm-modal-title').innerText = title;
+    document.getElementById('confirm-modal-desc').innerText = desc;
+    
+    confirmActionCallback = onConfirm;
+    
+    const actionBtn = document.getElementById('confirm-modal-action-btn');
+    actionBtn.onclick = () => {
+        if (confirmActionCallback) confirmActionCallback();
+        closeConfirmModal();
+    };
+    
+    modal.style.display = 'flex';
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirm-modal');
+    if (modal) modal.style.display = 'none';
+    confirmActionCallback = null;
 }

@@ -1,7 +1,7 @@
 <div id="tab-events" class="tab-content" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2>Event Catalogs</h2>
-        <div>
+        <div style="display: flex; gap: 8px;">
             <button class="btn btn-primary" id="btn-publish-active" onclick="toggleEventForm(true)">+ Publish New Portal</button>
             <button class="btn btn-primary" id="btn-upload-past" style="display: none;" onclick="togglePastEventForm(true)">+ Upload Past Event</button>
         </div>
@@ -9,8 +9,14 @@
 
     <!-- Event Category Subtabs -->
     <div class="subtab-buttons" style="margin-bottom: 24px;">
-        <button id="event-subtab-active" class="subtab-btn active" onclick="switchEventSubTab('active')">📅 Active Events</button>
-        <button id="event-subtab-past" class="subtab-btn" onclick="switchEventSubTab('past')">📜 Past Events</button>
+        <button id="event-subtab-active" class="subtab-btn active" onclick="switchEventSubTab('active')">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+            Active Events
+        </button>
+        <button id="event-subtab-past" class="subtab-btn" onclick="switchEventSubTab('past')">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Past Events
+        </button>
     </div>
 
     <!-- Event creation drawer/card -->
@@ -53,18 +59,18 @@
                 </div>
             </div>
 
-            <div style="background-color: var(--bg-primary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: flex; alignItems: center; gap: 12px;">
+            <div style="background-color: var(--bg-input); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 24px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
                     <input type="checkbox" id="event-free-reg" style="width: 18px; height: 18px; cursor: pointer;" checked>
-                    <label for="event-free-reg" style="cursor: pointer;">Allow Free Registration Mode</label>
+                    <label for="event-free-reg" style="cursor: pointer; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: -0.16px; color: var(--text-primary);">Allow Free Registration Mode</label>
                 </div>
-                <div style="display: flex; alignItems: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
                     <input type="checkbox" id="event-paid-reg" style="width: 18px; height: 18px; cursor: pointer;">
-                    <label for="event-paid-reg" style="cursor: pointer;">Allow Paid Registration Mode (Requires price &gt; 0)</label>
+                    <label for="event-paid-reg" style="cursor: pointer; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: -0.16px; color: var(--text-primary);">Allow Paid Registration Mode (Requires price &gt; 0)</label>
                 </div>
-                <div style="display: flex; alignItems: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
                     <input type="checkbox" id="event-vol-reg" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleVolLimitField()">
-                    <label for="event-vol-reg" style="cursor: pointer;">Enable Volunteer Registration for this Event</label>
+                    <label for="event-vol-reg" style="cursor: pointer; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: -0.16px; color: var(--text-primary);">Enable Volunteer Registration for this Event</label>
                 </div>
                 <div id="vol-limit-container" class="form-group" style="display: none; max-width: 240px; margin-top: 4px;">
                     <label>Volunteer Limits (Spots)</label>
@@ -125,8 +131,11 @@
                 <input type="text" id="past-event-images" class="form-control" placeholder="e.g. https://image1.jpg, https://image2.jpg">
             </div>
 
-            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border-color); margin-bottom: 24px;">
-                <h4 style="margin-bottom: 12px; color: var(--color-brand);">📋 Detailed Report & Committee (Optional)</h4>
+            <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-color-strong); margin-bottom: 24px;">
+                <div class="section-header" style="margin-bottom: 16px;">
+                    <span class="section-icon" style="width: 32px; height: 32px; background: transparent; box-shadow: none; margin-right: -4px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+                    <h4 style="color: var(--color-brand);">Detailed Report & Committee (Optional)</h4>
+                </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
@@ -170,7 +179,11 @@
                     </div>
                 </div>
 
-                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 13px;">👥 Core Student Committee Teams (Comma-separated names/details)</h5>
+                <div class="section-header" style="margin-bottom: 12px;">
+                    <span class="section-icon" style="width: 32px; height: 32px; background: transparent; box-shadow: none; margin-right: -4px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+                    <h4 style="color: var(--text-primary);">Core Student Committee Teams</h4>
+                </div>
+                <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 14px; letter-spacing: -0.16px; font-weight: 500;">Comma-separated names/details</p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
                         <label>Organizers Team</label>
