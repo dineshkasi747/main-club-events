@@ -13,7 +13,7 @@ import '../models/registration.dart';
 class AppState extends ChangeNotifier {
   // Automatically resolve 10.0.2.2 for Android emulator, localhost for others
   static String get baseUrl {
-    return 'https://gvp-college-portal.loca.lt/college/portal/backend/api.php';
+    return 'http://localhost:8000/backend/api.php';
   }
 
   static final List<Club> _defaultClubs = [

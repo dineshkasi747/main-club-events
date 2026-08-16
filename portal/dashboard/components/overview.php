@@ -15,8 +15,11 @@
     </div>
 
     <div class="card" style="border-top: 4px solid var(--color-brand);">
-        <h2>📢 Broadcast Club Announcement</h2>
-        <p style="color: var(--text-secondary); font-size: 13px; margin: 4px 0 16px 0;">
+        <div class="section-header">
+            <span class="section-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg></span>
+            <h2>Broadcast Club Announcement</h2>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 20px 0; font-weight: 500; letter-spacing: -0.16px;">
             Compose a message to broadcast to all members. This triggers a real-time push notification via Firebase.
         </p>
         <div id="broadcast-alert" class="alert" style="display: none;"></div>
