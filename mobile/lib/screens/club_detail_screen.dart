@@ -244,8 +244,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       logoUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200';
       category = 'Cultural';
     } else if (widget.club.id == 106) {
-      bannerUrl = 'assets/ieee_cs/images/logo.png';
-      logoUrl = 'assets/ieee_cs/images/logo.png';
+      bannerUrl = 'assets/ieee_cs/images/logo_black.png';
+      logoUrl = 'assets/ieee_cs/images/logo_black.png';
       category = 'Technical';
     } else {
       bannerUrl = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&auto=format&fit=crop';
@@ -624,7 +624,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 24,
-                                    backgroundColor: const Color(0xFFEEF2F6),
+                                    backgroundColor: Colors.white,
                                     child: ClipOval(
                                       child: PremiumImage(url: logoUrl, category: category, width: 48, height: 48),
                                     ),

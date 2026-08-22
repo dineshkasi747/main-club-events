@@ -1,4 +1,69 @@
 <?php
+function sendTeamInvitationEmail($toEmail, $teamName, $leaderName, $eventName) {
+    $subject = "Team Invitation: Join '$teamName' for $eventName";
+    $htmlContent = "
+    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;'>
+        <h2 style='color: #4f46e5; margin-bottom: 20px;'>CampusLink Team Invitation</h2>
+        <p>Hi,</p>
+        <p>You have been invited by <strong>$leaderName</strong> to join their team <strong>$teamName</strong> for the upcoming event <strong>$eventName</strong>.</p>
+        <p style='margin: 25px 0;'>
+            To accept this invitation and claim your digital ticket, please:
+            <ol>
+                <li>Open the <strong>CampusLink Mobile App</strong> on your device.</li>
+                <li>Log in to your account (using your roll number/student email).</li>
+                <li>Go to the <strong>Profile</strong> tab.</li>
+                <li>Click <strong>Accept</strong> on the invitation card under the <em>Pending Team Invitations</em> panel.</li>
+            </ol>
+        </p>
+        <p style='color: #64748b; font-size: 13px; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px;'>
+            Best regards,<br>
+            <strong>CampusLink GVP Team</strong>
+        </p>
+    </div>";
+
+    // Log the email locally for development testing
+    $logDir = __DIR__ . '/../logs';
+    if (!file_exists($logDir)) {
+        mkdir($logDir, 0777, true);
+    }
+    $logFile = $logDir . '/emails.log';
+    $plainText = strip_tags(str_replace(['<br>', '</p>', '<li>'], ["\n", "\n", "\n- "], $htmlContent));
+    $logMsg = "[" . date('Y-m-d H:i:s') . "] To: $toEmail\nSubject: $subject\n\n$plainText\n========================================\n";
+    file_put_contents($logFile, $logMsg, FILE_APPEND);
+
+    // API Configurations (e.g. Brevo)
+    $brevoKey = getenv('BREVO_API_KEY') ?: '';
+    
+    if (!empty($brevoKey)) {
+        // Send via Brevo API
+        $data = [
+            'sender' => ['name' => 'CampusLink GVP', 'email' => 'no-reply@gvpce.ac.in'],
+            'to' => [['email' => $toEmail]],
+            'subject' => $subject,
+            'htmlContent' => $htmlContent
+        ];
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'accept: application/json',
+            'api-key: ' . $brevoKey,
+            'content-type: application/json'
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
+    } else {
+        // Fallback to standard PHP mail()
+        $headers = "MIME-Version: 1.0\r\n" .
+                   "Content-Type: text/html; charset=UTF-8\r\n" .
+                   "From: CampusLink GVP <no-reply@gvpce.ac.in>\r\n" .
+                   "Reply-To: no-reply@gvpce.ac.in\r\n" .
+                   "X-Mailer: PHP/" . phpversion();
+        @mail($toEmail, $subject, $htmlContent, $headers);
+    }
+}
+
 if ($path === '/events' && $method === 'GET') {
     $stmt = $pdo->query("SELECT * FROM events WHERE status = 'active'");
     $activeEvents = $stmt->fetchAll();
@@ -267,14 +332,28 @@ else {
         if ($selectedMode === 'Team' && isset($body['invites']) && is_array($body['invites'])) {
             foreach ($body['invites'] as $invitee) {
                 if (!empty(trim($invitee))) {
+                    $inviteeEmail = trim($invitee);
+                    // If input is just a roll number (no '@'), append '@gvpce.ac.in'
+                    if (strpos($inviteeEmail, '@') === false) {
+                        $inviteeEmail = strtolower($inviteeEmail) . '@gvpce.ac.in';
+                    }
+
                     $stmtInv = $pdo->prepare("INSERT INTO team_invitations (teamName, leaderEmail, inviteeEmail, eventId, status, timestamp) VALUES (:teamName, :leaderEmail, :inviteeEmail, :eventId, 'pending', :timestamp)");
                     $stmtInv->execute([
                         'teamName' => isset($body['teamName']) ? $body['teamName'] : 'Unnamed Team',
                         'leaderEmail' => $currentUser['email'],
-                        'inviteeEmail' => trim($invitee),
+                        'inviteeEmail' => $inviteeEmail,
                         'eventId' => $matchedEvent['id'],
                         'timestamp' => date('c')
                     ]);
+
+                    // Send email notification (logs locally & attempts delivery)
+                    sendTeamInvitationEmail(
+                        $inviteeEmail, 
+                        $body['teamName'] ?? 'Unnamed Team', 
+                        $currentUser['name'] ?? $currentUser['email'], 
+                        $matchedEvent['title']
+                    );
                 }
             }
         }

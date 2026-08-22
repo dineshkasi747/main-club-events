@@ -896,7 +896,7 @@ class _HomeTabState extends State<HomeTab> {
         return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200';
       }
       if (club.id == 106) {
-        return 'assets/ieee_cs/images/logo.png';
+        return 'assets/ieee_cs/images/logo_black.png';
       }
       return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=200';
     }
@@ -936,7 +936,7 @@ class _HomeTabState extends State<HomeTab> {
                     children: [
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: const Color(0xFFEEF2F6),
+                        backgroundColor: Colors.white,
                         backgroundImage: imgUrl.startsWith('assets/')
                             ? AssetImage(imgUrl) as ImageProvider
                             : NetworkImage(imgUrl),
@@ -1329,7 +1329,7 @@ class _ClubsTabState extends State<ClubsTab> {
       } else if (club.id == 102) {
         return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
       } else if (club.id == 106) {
-        return 'assets/ieee_cs/images/logo.png';
+        return 'assets/ieee_cs/images/logo_black.png';
       } else {
         return 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=400&auto=format&fit=crop';
       }
@@ -1350,7 +1350,7 @@ class _ClubsTabState extends State<ClubsTab> {
         return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200';
       }
       if (club.id == 106) {
-        return 'assets/ieee_cs/images/logo.png';
+        return 'assets/ieee_cs/images/logo_black.png';
       }
       return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=200';
     }
