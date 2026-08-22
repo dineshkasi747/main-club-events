@@ -32,14 +32,35 @@ if ($path === '/auth/login' && $method === 'POST') {
         $clubId = (int)$matchedUser['club_id'];
     }
 
-    $branch = isset($matchedUser['branch']) ? $matchedUser['branch'] : '';
-    $rollNumber = isset($matchedUser['rollNumber']) ? $matchedUser['rollNumber'] : (isset($matchedUser['roll_number']) ? $matchedUser['roll_number'] : '');
-    
-    $yearOfPassing = null;
-    if (isset($matchedUser['yearOfPassing']) && $matchedUser['yearOfPassing'] !== null) {
-        $yearOfPassing = (int)$matchedUser['yearOfPassing'];
-    } elseif (isset($matchedUser['year_of_passing']) && $matchedUser['year_of_passing'] !== null) {
-        $yearOfPassing = (int)$matchedUser['year_of_passing'];
+    $emailParts = explode('@', $matchedUser['email']);
+    $possibleRoll = $emailParts[0];
+
+    $rollNumber = !empty($matchedUser['rollNumber']) 
+        ? $matchedUser['rollNumber'] 
+        : (!empty($matchedUser['roll_number']) ? $matchedUser['roll_number'] : $possibleRoll);
+
+    $parsed = parseRollNumberDetails($rollNumber);
+
+    $branch = (!empty($matchedUser['branch']) && $matchedUser['branch'] !== 'Engineering') 
+        ? $matchedUser['branch'] 
+        : ($parsed['branch'] ?: 'Engineering');
+
+    $yearOfPassing = (isset($matchedUser['yearOfPassing']) && $matchedUser['yearOfPassing'] !== null)
+        ? (int)$matchedUser['yearOfPassing']
+        : ((isset($matchedUser['year_of_passing']) && $matchedUser['year_of_passing'] !== null)
+            ? (int)$matchedUser['year_of_passing']
+            : ($parsed['yearOfPassing'] ?: 2026));
+
+    $year = $parsed['year'];
+
+    if ($matchedUser['role'] === 'student') {
+        $updateStmt = $pdo->prepare("UPDATE users SET branch = :branch, rollNumber = :rollNumber, yearOfPassing = :yearOfPassing WHERE id = :id");
+        $updateStmt->execute([
+            'branch' => $branch,
+            'rollNumber' => $rollNumber,
+            'yearOfPassing' => $yearOfPassing,
+            'id' => $matchedUser['id']
+        ]);
     }
 
     sendJson([
@@ -53,6 +74,7 @@ if ($path === '/auth/login' && $method === 'POST') {
             'branch' => $branch,
             'rollNumber' => $rollNumber,
             'yearOfPassing' => $yearOfPassing,
+            'year' => $year,
         ]
     ]);
 } else {

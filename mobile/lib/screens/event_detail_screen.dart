@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../models/event.dart';
 import '../providers/app_state.dart';
 import '../widgets/premium_image.dart';
+import 'spheronix_registration_screen.dart';
+import 'sih_registration_screen.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final Event event;
@@ -467,6 +469,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       ),
                       const SizedBox(height: 24),
 
+                      if (widget.event.id == 2027 || widget.event.title.contains('Spheronix')) ...[
+                        _buildInteractivePrizesSection(),
+                        const SizedBox(height: 20),
+                      ],
+
                       const Text(
                         'About the Event',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
@@ -517,16 +524,30 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         ],
                         if (widget.event.paidRegistration) ...[
                           ElevatedButton(
-                            onPressed: _showPaymentSheet,
+                            onPressed: () {
+                              if (widget.event.id == 2027 || widget.event.title.contains('Spheronix')) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => SpheronixRegistrationScreen(event: widget.event)),
+                                );
+                              } else if (widget.event.id == 2026 || widget.event.title.contains('SIH') || widget.event.title.contains('Smart India')) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => SihRegistrationScreen(sihEvent: widget.event)),
+                                );
+                              } else {
+                                _showPaymentSheet();
+                              }
+                            },
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: const Color(0xFF6366F1),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               elevation: 0,
                             ),
-                            child: Text(
-                              'Buy Ticket (₹${widget.event.price.toStringAsFixed(0)})',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                            child: const Text(
+                              'Register Now',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -554,6 +575,149 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildInteractivePrizesSection() {
+    final prizes = [
+      {
+        'title': '1st Prize',
+        'tag': '🏆 Winner',
+        'color': const Color(0xFFD97706),
+        'bgGradient': [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)],
+        'borderColor': const Color(0xFFFBBF24),
+        'desc': 'Apple Laptop & Cash Prize',
+      },
+      {
+        'title': '2nd Prize',
+        'tag': '🥈 Runner Up',
+        'color': const Color(0xFF475569),
+        'bgGradient': [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+        'borderColor': const Color(0xFF94A3B8),
+        'desc': 'High-Perf Laptop & Cash Prize',
+      },
+      {
+        'title': '3rd Prize',
+        'tag': '🥉 2nd Runner Up',
+        'color': const Color(0xFFB45309),
+        'bgGradient': [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
+        'borderColor': const Color(0xFFFDBA74),
+        'desc': 'Pro Laptop & Cash Prize',
+      },
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.emoji_events, color: Color(0xFFF59E0B), size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    'Prizes & Rewards',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFBBF24)),
+                ),
+                child: const Text(
+                  'Pool: ₹2L - ₹5L',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: prizes.length,
+              itemBuilder: (context, index) {
+                final item = prizes[index];
+                return Container(
+                  width: 140,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: item['bgGradient'] as List<Color>,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: item['borderColor'] as Color, width: 1.2),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          item['tag'] as String,
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: item['color'] as Color),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Image.asset(
+                          'assets/sih/posters/laptop_prize.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        item['title'] as String,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: item['color'] as Color),
+                      ),
+                      Text(
+                        item['desc'] as String,
+                        style: const TextStyle(fontSize: 9, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Center(
+            child: Text(
+              '* Note: As per company norms, the prize pool will be selected.',
+              style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Color(0xFF94A3B8)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

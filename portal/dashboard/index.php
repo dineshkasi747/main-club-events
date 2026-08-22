@@ -123,6 +123,6 @@
     <!-- 3. OVERLAY MODALS -->
     <?php include_once __DIR__ . '/components/modals.php'; ?>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

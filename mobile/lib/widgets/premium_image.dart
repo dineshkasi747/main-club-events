@@ -69,28 +69,32 @@ class PremiumImage extends StatelessWidget {
       return placeholder;
     }
 
+    final lowerUrl = url.toLowerCase();
+    final isLogo = lowerUrl.contains('logo');
+    final isPoster = lowerUrl.contains('poster') || lowerUrl.contains('sih') || lowerUrl.contains('spheronix') || lowerUrl.contains('chatgpt');
+    final isIeeeCs = lowerUrl.contains('ieee_cs');
+    final useContain = isLogo || isPoster || fit == BoxFit.contain;
+    final effectiveFit = useContain ? BoxFit.contain : fit;
+
     // Local asset image
     if (url.startsWith('assets/')) {
-      final isLogo = url.toLowerCase().contains('logo');
-      final isIeeeCs = url.toLowerCase().contains('ieee_cs');
-      
       Widget imageWidget = Image.asset(
         url,
         height: height,
         width: width,
-        fit: isLogo ? BoxFit.contain : fit,
+        fit: effectiveFit,
         errorBuilder: (context, error, stackTrace) => placeholder,
       );
 
-      if (isLogo) {
+      if (useContain) {
         return ClipRRect(
           borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
           child: Container(
             height: height,
             width: width,
             color: isIeeeCs ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-            padding: const EdgeInsets.all(12.0),
-            child: imageWidget,
+            padding: EdgeInsets.all(isLogo ? 12.0 : 4.0),
+            child: Center(child: imageWidget),
           ),
         );
       }
@@ -103,26 +107,23 @@ class PremiumImage extends StatelessWidget {
 
     // Network image
     if (url.startsWith('http')) {
-      final isLogo = url.toLowerCase().contains('logo');
-      final isIeeeCs = url.toLowerCase().contains('ieee_cs');
-
       Widget imageWidget = Image.network(
         url,
         height: height,
         width: width,
-        fit: isLogo ? BoxFit.contain : fit,
+        fit: effectiveFit,
         errorBuilder: (context, error, stackTrace) => placeholder,
       );
 
-      if (isLogo) {
+      if (useContain) {
         return ClipRRect(
           borderRadius: customBorderRadius ?? BorderRadius.circular(borderRadius),
           child: Container(
             height: height,
             width: width,
             color: isIeeeCs ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-            padding: const EdgeInsets.all(12.0),
-            child: imageWidget,
+            padding: EdgeInsets.all(isLogo ? 12.0 : 4.0),
+            child: Center(child: imageWidget),
           ),
         );
       }

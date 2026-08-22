@@ -103,6 +103,8 @@ class TicketScreen extends StatelessWidget {
                       _detailRow('Branch Name', booking.userBranch),
                       _detailRow('Graduation Year', '${booking.userYearOfPassing}'),
                       _detailRow('Booking Type', booking.type.toUpperCase()),
+                      if (booking.teamName != null && booking.teamName!.isNotEmpty)
+                        _detailRow('Team Name', booking.teamName!),
                       
                       const SizedBox(height: 16),
                       const Divider(color: Color(0xFFE2E8F0), height: 16),

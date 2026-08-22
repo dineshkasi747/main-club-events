@@ -19,6 +19,7 @@ class Registration {
   final String upiRefId;
   final String paymentScreenshot;
   final String timestamp;
+  final String? teamName;
 
   Registration({
     required this.id,
@@ -41,6 +42,7 @@ class Registration {
     required this.upiRefId,
     required this.paymentScreenshot,
     required this.timestamp,
+    this.teamName,
   });
 
   factory Registration.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,7 @@ class Registration {
       upiRefId: json['upiRefId'] ?? '',
       paymentScreenshot: json['paymentScreenshot'] ?? '',
       timestamp: json['timestamp'] ?? '',
+      teamName: json['teamName'] as String?,
     );
   }
 }

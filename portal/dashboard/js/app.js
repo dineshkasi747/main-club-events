@@ -1,4 +1,4 @@
-const API_BASE = window.location.origin + '/backend/api.php';
+const API_BASE = window.location.origin + (window.location.pathname.includes('/portal') ? '/portal/backend/api.php' : '/backend/api.php');
 
 let token = localStorage.getItem('token');
 let user = JSON.parse(localStorage.getItem('user'));
@@ -387,30 +387,85 @@ function renderEventsGrid() {
 }
 
 // Render Pending Verify Table
+let currentVerificationFilter = 'all';
+
+function filterVerifications(filterType) {
+    currentVerificationFilter = filterType;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    const targetBtn = document.getElementById(`filter-${filterType}`);
+    if (targetBtn) targetBtn.classList.add('active');
+    renderVerificationsTable();
+}
+
+// Render Pending Verify Table & Razorpay Transaction Summaries
 function renderVerificationsTable() {
     const tbody = document.getElementById('verifications-tbody');
     if (!tbody) return;
+
+    // Update Stats Summary Cards
+    const totalRegs = registrations.length;
+    const pendingRegs = registrations.filter(r => r.status === 'pending').length;
+    const approvedRegs = registrations.filter(r => r.status === 'approved' || r.status === 'attended').length;
+    const totalRev = registrations
+        .filter(r => r.status === 'approved' || r.status === 'attended')
+        .reduce((sum, r) => sum + (parseFloat(r.paymentAmount) || 0), 0);
+
+    const statTotalEl = document.getElementById('stat-total-regs');
+    const statPendingEl = document.getElementById('stat-pending-regs');
+    const statApprovedEl = document.getElementById('stat-approved-regs');
+    const statRevEl = document.getElementById('stat-revenue');
+
+    if (statTotalEl) statTotalEl.innerText = totalRegs;
+    if (statPendingEl) statPendingEl.innerText = pendingRegs;
+    if (statApprovedEl) statApprovedEl.innerText = approvedRegs;
+    if (statRevEl) statRevEl.innerText = `₹${totalRev.toFixed(2)}`;
+
     tbody.innerHTML = '';
 
-    const pendingBookings = registrations.filter(r => r.type === 'participant');
+    let filteredBookings = registrations.filter(r => r.type === 'participant');
+    if (currentVerificationFilter === 'pending') {
+        filteredBookings = filteredBookings.filter(r => r.status === 'pending');
+    } else if (currentVerificationFilter === 'approved') {
+        filteredBookings = filteredBookings.filter(r => r.status === 'approved' || r.status === 'attended');
+    } else if (currentVerificationFilter === 'cancelled') {
+        filteredBookings = filteredBookings.filter(r => r.status === 'cancelled' || r.status === 'rejected');
+    }
 
-    if (pendingBookings.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No student registrations submitted yet.</td></tr>';
+    if (filteredBookings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 24px;">No student registrations match filter "${currentVerificationFilter}".</td></tr>`;
         return;
     }
 
-    pendingBookings.forEach(r => {
-        const actionBtn = r.status === 'pending' 
-            ? `<button class="btn btn-success" style="padding: 6px 12px; font-size: 11px; border-radius: 8px;" onclick="handleVerifyBooking(${r.id})">Verify & Approve</button>`
-            : `<span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Verified ✓</span>`;
+    filteredBookings.forEach(r => {
+        let actionBtn = '';
+        if (r.status === 'pending') {
+            actionBtn = `
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-success" style="padding: 6px 12px; font-size: 11px; border-radius: 8px;" onclick="handleVerifyBooking(${r.id})">Verify & Approve</button>
+                    <button class="btn btn-outline" style="padding: 6px 10px; font-size: 11px; border-radius: 8px; color: #DC2626; border-color: #FCA5A5;" onclick="handleRejectBooking(${r.id})">Reject</button>
+                </div>`;
+        } else if (r.status === 'approved' || r.status === 'attended') {
+            actionBtn = `<span style="font-size: 11px; color: #059669; font-weight: 700;">Verified ✓</span>`;
+        } else {
+            actionBtn = `<span style="font-size: 11px; color: #DC2626; font-weight: 700;">Cancelled ✕</span>`;
+        }
 
+        const methodTag = r.paymentMethod || 'Razorpay UPI Intent';
         const paymentSummary = r.paymentAmount > 0
             ? `<div>
-                 <div style="font-family: 'Outfit', sans-serif; font-weight:800; color: var(--color-teal); font-size: 14px;">₹${parseFloat(r.paymentAmount).toFixed(2)}</div>
-                 <div style="font-size: 10px; font-weight: 700; color: var(--color-brand); margin-top: 4px; letter-spacing: 0.3px;">Ref: ${r.upiRefId || r.transactionId}</div>
+                 <div style="font-family: 'Outfit', sans-serif; font-weight:800; color: #059669; font-size: 14px;">₹${parseFloat(r.paymentAmount).toFixed(2)}</div>
+                 <div style="font-size: 10px; font-weight: 700; color: #475569; margin-top: 2px;">Method: ${methodTag}</div>
+                 <div style="font-size: 10px; font-weight: 700; color: #0284C7; margin-top: 2px; font-family: monospace;">Pay ID: ${r.transactionId || 'N/A'}</div>
+                 ${r.upiRefId ? `<div style="font-size: 9px; color: #64748B; font-family: monospace;">Order ID: ${r.upiRefId}</div>` : ''}
                  ${r.paymentScreenshot ? `<button class="btn btn-outline" style="padding: 2px 8px; font-size: 9px; margin-top: 6px;" onclick="zoomScreenshot('${r.paymentScreenshot}')">View Screenshot 🔍</button>` : ''}
                </div>`
             : '<span style="color: var(--text-muted); font-weight: 500; font-size: 12px;">FREE ENTRY</span>';
+
+        const statusBadgeStyle = r.status === 'pending'
+            ? 'background: #FFFBEB; color: #B45309; border: 1px solid #FCD34D;'
+            : (r.status === 'approved' || r.status === 'attended'
+                ? 'background: #ECFDF5; color: #047857; border: 1px solid #6EE7B7;'
+                : 'background: #FEF2F2; color: #B91C1C; border: 1px solid #FCA5A5;');
 
         const row = `
             <tr>
@@ -424,7 +479,7 @@ function renderVerificationsTable() {
                     <div style="font-size: 11px; color: var(--text-muted); font-weight: 500;">${r.eventDate}</div>
                 </td>
                 <td>${paymentSummary}</td>
-                <td><span class="badge badge-${r.status}">${r.status}</span></td>
+                <td><span class="badge" style="padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; ${statusBadgeStyle}">${r.status}</span></td>
                 <td>${actionBtn}</td>
             </tr>
         `;
@@ -436,7 +491,7 @@ function renderVerificationsTable() {
 function handleVerifyBooking(regId) {
     showConfirmModal(
         "Approve Ticket Entry?",
-        "Are you sure you want to verify this payment and approve ticket entry? The student will be notified and receive their digital ticket.",
+        "Are you sure you want to verify this Razorpay payment and approve ticket entry? The student will be authorized and receive their verified digital ticket.",
         async () => {
             try {
                 const res = await fetch(`${API_BASE}/registrations/${regId}/verify`, {
@@ -445,7 +500,6 @@ function handleVerifyBooking(regId) {
                 });
                 if (res.ok) {
                     fetchDashboardData();
-                    // If modal is open, we can refresh it or just let the user see it after
                 } else {
                     alert("Approval failed");
                 }
@@ -455,6 +509,30 @@ function handleVerifyBooking(regId) {
         }
     );
 }
+
+// Reject booking registration
+function handleRejectBooking(regId) {
+    showConfirmModal(
+        "Reject Registration?",
+        "Are you sure you want to reject and cancel this registration? The status will be marked as cancelled.",
+        async () => {
+            try {
+                const res = await fetch(`${API_BASE}/registrations/${regId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    fetchDashboardData();
+                } else {
+                    alert("Rejection failed");
+                }
+            } catch (err) {
+                alert("Network communication error.");
+            }
+        }
+    );
+}
+
 
 // Zoom receipt photo
 function zoomScreenshot(url) {

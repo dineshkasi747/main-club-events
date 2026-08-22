@@ -66,6 +66,40 @@ elseif (preg_match('#^/registrations/(\d+)/verify$#', $path, $matches) && $metho
     sendJson(['message' => 'Registration payment verified & approved successfully', 'registration' => $registration]);
 }
 
+elseif (preg_match('#^/registrations/(\d+)/reject$#', $path, $matches) && $method === 'POST') {
+    if ($currentUser['role'] !== 'admin' && $currentUser['role'] !== 'president') {
+        sendJson(['error' => 'Unauthorized'], 403);
+    }
+
+    $regId = (float)$matches[1];
+    
+    $stmt = $pdo->prepare("SELECT * FROM registrations WHERE id = :id");
+    $stmt->execute(['id' => $regId]);
+    $registration = $stmt->fetch();
+
+    if (!$registration) {
+        sendJson(['error' => 'Booking not found'], 404);
+    }
+
+    if ($currentUser['role'] === 'president' && (int)$registration['eventClubId'] !== (int)$currentUser['clubId']) {
+        sendJson(['error' => 'Access Denied: Scoped to assigned club only.'], 403);
+    }
+
+    $stmt = $pdo->prepare("UPDATE registrations SET status = 'cancelled' WHERE id = :id");
+    $stmt->execute(['id' => $regId]);
+
+    $registration['status'] = 'cancelled';
+    $registration['id'] = (float)$registration['id'];
+    $registration['userId'] = (int)$registration['userId'];
+    $registration['userYearOfPassing'] = (int)$registration['userYearOfPassing'];
+    $registration['eventId'] = (float)$registration['eventId'];
+    $registration['eventClubId'] = (int)$registration['eventClubId'];
+    $registration['eventPrice'] = (float)$registration['eventPrice'];
+    $registration['paymentAmount'] = (float)$registration['paymentAmount'];
+
+    sendJson(['message' => 'Registration payment rejected & cancelled', 'registration' => $registration]);
+}
+
 elseif (preg_match('#^/registrations/(\d+)/admit$#', $path, $matches) && $method === 'POST') {
     if ($currentUser['role'] !== 'admin' && $currentUser['role'] !== 'president') {
         sendJson(['error' => 'Unauthorized'], 403);

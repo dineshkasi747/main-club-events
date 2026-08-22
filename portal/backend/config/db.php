@@ -2,7 +2,7 @@
 $host = 'localhost';
 $db   = 'college_clubs';
 $user = 'root';
-$pass = 'Chandu123';
+$pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -12,12 +12,15 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-
 try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-     http_response_code(500);
-     header('Content-Type: application/json');
-     echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
-     exit;
+     try {
+         $pdo = new PDO($dsn, $user, 'Chandu123', $options);
+     } catch (\PDOException $e2) {
+         http_response_code(500);
+         header('Content-Type: application/json');
+         echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
+         exit;
+     }
 }

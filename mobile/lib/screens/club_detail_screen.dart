@@ -5,6 +5,7 @@ import '../models/club.dart';
 import '../models/event.dart';
 import '../providers/app_state.dart';
 import '../widgets/premium_image.dart';
+import 'event_detail_screen.dart';
 
 class ClubDetailScreen extends StatefulWidget {
   final Club club;
@@ -42,6 +43,175 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
         });
       }
     }
+  }
+
+  void _showMemberDetailCard(BuildContext context, Map<String, String> member) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 10,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 320),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Top decorative accent bar / background gradient
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 90,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Close button at top right
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.close, size: 18, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+
+                // Main Content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 45, 20, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Large Avatar with border
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 54,
+                          backgroundColor: Colors.white,
+                          backgroundImage: member['avatar']!.startsWith('assets/')
+                              ? AssetImage(member['avatar']!) as ImageProvider
+                              : NetworkImage(member['avatar']!),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Member Name
+                      Text(
+                        member['name']!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Role Tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE0E7FF)),
+                        ),
+                        child: Text(
+                          member['role']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4F46E5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Additional details decoration
+                      const Divider(color: Color(0xFFF1F5F9), height: 1),
+                      const SizedBox(height: 16),
+                      
+                      // Metadata rows
+                      Row(
+                        children: [
+                          const Icon(Icons.shield_outlined, size: 18, color: Color(0xFF64748B)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.club.name,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF475569),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Row(
+                        children: [
+                          Icon(Icons.stars_outlined, size: 18, color: Color(0xFF64748B)),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Executive Club Committee Member',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -389,6 +559,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       ]);
     }
 
+    final upcomingEvents = Provider.of<AppState>(context)
+        .events
+        .where((e) => e.clubId == widget.club.id && e.status == 'active')
+        .toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: loading
@@ -487,6 +662,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                         ),
                         const SizedBox(height: 24),
 
+
+
                         // 3. Previous Year Tenure Folders
                         const Text(
                           'Previous Conducted Events (Archives)',
@@ -548,34 +725,39 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                             itemCount: coreTeam.length,
                             itemBuilder: (context, index) {
                               final member = coreTeam[index];
-                              return Container(
-                                width: 110,
-                                margin: const EdgeInsets.only(right: 14),
-                                child: Column(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 28,
-                                      backgroundImage: member['avatar']!.startsWith('assets/')
-                                          ? AssetImage(member['avatar']!) as ImageProvider
-                                          : NetworkImage(member['avatar']!),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      member['name']!,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      member['role']!,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                              return InkWell(
+                                onTap: () => _showMemberDetailCard(context, member),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  width: 110,
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                  margin: const EdgeInsets.only(right: 14),
+                                  child: Column(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 28,
+                                        backgroundImage: member['avatar']!.startsWith('assets/')
+                                            ? AssetImage(member['avatar']!) as ImageProvider
+                                            : NetworkImage(member['avatar']!),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        member['name']!,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        member['role']!,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 9, color: Color(0xFF64748B)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

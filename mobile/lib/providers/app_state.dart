@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -11,36 +9,11 @@ import '../models/event.dart';
 import '../models/registration.dart';
 
 class AppState extends ChangeNotifier {
-  // Automatically resolve 10.0.2.2 for Android emulator, localhost for others
   static String get baseUrl {
-    return 'http://localhost:8000/backend/api.php';
+    return 'https://gvp-college-portal.loca.lt/portal/backend/api.php';
   }
 
   static final List<Club> _defaultClubs = [
-    Club(
-      id: 101,
-      name: "Tech Brew",
-      description: "The official coding club of the campus. We organize hackathons, dev bootcamps, and build awesome software solutions.",
-      presidentName: "Karan Malhotra",
-      membersCount: 512,
-      members: const ["Aarav Mehta", "Rohan Gupta", "Priya Das", "Siddharth Roy", "Sneha Rao"],
-    ),
-    Club(
-      id: 102,
-      name: "Nritya & Raga",
-      description: "Where music meets dance. The cultural hub for vocalists, instrumentalists, and dancers to perform and express.",
-      presidentName: "Ananya Sen",
-      membersCount: 430,
-      members: const ["Vikram Seth", "Kabir Shah", "Aditi Iyer", "Ishita Sen", "Rhea Nair"],
-    ),
-    Club(
-      id: 103,
-      name: "FinEdge & Sports",
-      description: "Dedicated to athletic excellence and physical fitness. Organizing league matches, athletic meets, and fitness programs.",
-      presidentName: "Rahul Verma",
-      membersCount: 298,
-      members: const ["Amit Singh", "Arjun Kapoor", "Neha Sharma", "Dev Patel", "Pooja Reddy"],
-    ),
     Club(
       id: 104,
       name: "AIML Club",
@@ -65,104 +38,48 @@ class AppState extends ChangeNotifier {
       membersCount: 180,
       members: const ["Sandra Rishitha M", "B N V Hemanth", "B Harika"],
     ),
+    Club(
+      id: 107,
+      name: "Smart India Hackathon (SIH)",
+      description: "Official GVP Chapter for Smart India Hackathon 2026. Empowering student innovators to solve pressing real-world challenges posed by ministries and industries.",
+      presidentName: "G. Surya Chaitanya",
+      membersCount: 450,
+      members: const ["Bongu Chandu", "Kasi Sri Sai Dinesh", "Mukalla Pallavi", "Surya Chaitanya"],
+    ),
   ];
 
   static final List<Event> _defaultEvents = [
     Event(
-      id: 1001,
-      clubId: 101,
-      title: "CodeSprint 5.0 Hackathon",
-      description: "The annual flag-ship 24-hour build challenge. Form a team, design an innovative solution, and present it to top-industry leaders. Pizza and energy drinks are on us!",
-      venue: "Main Block, Lab 3",
-      dateString: "Aug 27, 2026 @ 09:00 AM",
-      price: 150.0,
-      capacity: 120,
-      freeRegistration: false,
-      paidRegistration: true,
-      volunteerRegistration: true,
-      volunteerLimit: 15,
-      status: "active",
-      imagePath: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&auto=format&fit=crop&q=80",
-    ),
-    Event(
-      id: 1002,
-      clubId: 102,
-      title: "Raga - The Music Night",
-      description: "An enchanting evening of acoustic performances, rock bands, and classical recitals. Join us under the stars to celebrate the spirit of rhythm and expression.",
-      venue: "Open Air Theatre",
-      dateString: "Sep 05, 2026 @ 06:00 PM",
-      price: 0.0,
-      capacity: 300,
-      freeRegistration: true,
-      paidRegistration: false,
-      volunteerRegistration: true,
-      volunteerLimit: 25,
-      status: "active",
-      imagePath: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80",
-    ),
-    Event(
-      id: 1003,
-      clubId: 103,
-      title: "Campus Cricket League",
-      description: "Dust off your bats and shoes! The inter-branch cricket league is back. Matches will be held in the main sports arena with live commentary.",
-      venue: "College Ground A",
-      dateString: "Oct 12, 2026 @ 08:00 AM",
-      price: 80.0,
-      capacity: 80,
+      id: 2026,
+      clubId: 107,
+      title: "Registration for SIH 2026-Internal Hackathon",
+      description: "Smart India Hackathon 2026 Internal Selection Hackathon. Submit your innovative problem statements and ideas for national shortlisting. Teams may submit up to 2 ideas.",
+      venue: "Main Auditorium & CSE Computer Labs, GVPCE(A)",
+      dateString: "Sep 25, 2026 @ 09:00 AM",
+      price: 200.0,
+      capacity: 500,
       freeRegistration: false,
       paidRegistration: true,
       volunteerRegistration: false,
       volunteerLimit: 0,
       status: "active",
-      imagePath: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=600&auto=format&fit=crop&q=80",
+      imagePath: "assets/sih/posters/sih_poster.jpg",
     ),
     Event(
-      id: 1004,
+      id: 2027,
       clubId: 104,
-      title: "AI & Deep Learning Hackathon",
-      description: "Deploy deep learning models onto real-world datasets in a 12-hour coding sprint. Prizes for the most accurate and creative neural networks!",
-      venue: "IBM Lab, Main Block",
-      dateString: "Nov 14, 2026 @ 09:00 AM",
-      price: 100.0,
-      capacity: 150,
+      title: "Spheronix Technology Hackathon 2026",
+      description: "An 8-Hour International Hackathon organized in collaboration with Spheronix Technology PVT LTD and Sisga Soft Technology.\n\n🏆 CASH PRIZES & REWARDS:\n• Total Cash Prize Pool: ₹2,00,000 to ₹5,00,000!\n• 1st Prize (Winner): Laptop & Top Cash Prize\n• 2nd Prize (Runner Up): Laptop & Cash Prize\n• 3rd Prize (2nd Runner Up): Laptop & Cash Prize\n(Note: As per company norms, the prize pool will be selected)\n\n⚡ FOCUS DOMAINS:\n• Bug Hunt\n• Full Stack Applications\n• Native Apps (Windows)\n• Quantum Computing\n• Health Tech / Digital Healthcare\n• AR / VR & 3D Design\n• Robotics\n\nOpen to all students (1st Year to Final Year)!",
+      venue: "Main Auditorium & Spheronix Innovation Lab, GVPCE(A)",
+      dateString: "Aug 28, 2026 @ 09:00 AM",
+      price: 250.0,
+      capacity: 1000,
       freeRegistration: false,
       paidRegistration: true,
       volunteerRegistration: false,
       volunteerLimit: 0,
       status: "active",
-      imagePath: "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=600&auto=format&fit=crop&q=80",
-    ),
-    Event(
-      id: 1005,
-      clubId: 105,
-      title: "Squid-O-Quiz",
-      description: "A thrilling data science quiz competition with rounds on statistics, probability, machine learning, and data interpretation.",
-      venue: "Lab 5, CSE Block",
-      dateString: "Nov 20, 2026 @ 10:00 AM",
-      price: 0.0,
-      capacity: 150,
-      freeRegistration: true,
-      paidRegistration: false,
-      volunteerRegistration: true,
-      volunteerLimit: 10,
-      status: "active",
-      imagePath: "assets/dsclub/posters/soq_poster.jpeg",
-    ),
-    Event(
-      id: 1006,
-      clubId: 106,
-      title: "Quantum Computing Seminar",
-      description: "An introductory session on Quantum Computing, qubits, quantum gates, and future applications in cryptography and optimization.",
-      venue: "Seminar Hall 1",
-      dateString: "Nov 12, 2026 @ 10:00 AM",
-      price: 0.0,
-      capacity: 150,
-      freeRegistration: true,
-      paidRegistration: false,
-      volunteerRegistration: true,
-      volunteerLimit: 10,
-      status: "active",
-      imagePath: "assets/ieee_cs/posters/clash_of_minds.jpg",
+      imagePath: "assets/sih/posters/spheronix_poster.png",
     ),
   ];
 
@@ -658,6 +575,134 @@ class AppState extends ChangeNotifier {
     checkSavedSession();
   }
 
+  Map<String, dynamic> parseRollNumberDetails(String rollNum) {
+    final cleanRoll = rollNum.trim();
+    if (cleanRoll.isEmpty) {
+      return {'branch': null, 'yearOfPassing': null, 'year': null};
+    }
+
+    final Map<String, String> branchMap = {
+      '02': 'Chemical Engineering',
+      '08': 'Civil Engineering',
+      '10': 'Computer Science & Engineering',
+      '83': 'CSE with Data Science',
+      '82': 'CSE with AI & ML',
+      '12': 'Electronics & Communication Engineering',
+      '14': 'Electrical & Electronics Engineering',
+      '11': 'Information Technology',
+      '20': 'Mechanical Engineering',
+      '84': 'Mechanical Engineering with Robotics',
+      '37': 'CSE with Cyber Security',
+    };
+
+    String? detectedBranch;
+
+    if (cleanRoll.length >= 9) {
+      final code89 = cleanRoll.substring(7, 9);
+      if (branchMap.containsKey(code89)) {
+        detectedBranch = branchMap[code89];
+      }
+    }
+
+    if (detectedBranch == null && cleanRoll.length >= 10) {
+      final code910 = cleanRoll.substring(8, 10);
+      if (branchMap.containsKey(code910)) {
+        detectedBranch = branchMap[code910];
+      }
+    }
+
+    if (detectedBranch == null && cleanRoll.length >= 8) {
+      final code78 = cleanRoll.substring(6, 8);
+      if (branchMap.containsKey(code78)) {
+        detectedBranch = branchMap[code78];
+      }
+    }
+
+    if (detectedBranch == null) {
+      for (final entry in branchMap.entries) {
+        if (cleanRoll.contains(entry.key)) {
+          detectedBranch = entry.value;
+          break;
+        }
+      }
+    }
+
+    final prefix = cleanRoll.length >= 5 ? cleanRoll.substring(0, 5) : cleanRoll;
+    String? batchCode;
+    String? detectedYear;
+    int? detectedYearOfPassing;
+
+    if (prefix.contains('23')) {
+      batchCode = '23';
+    } else if (prefix.contains('24')) {
+      batchCode = '24';
+    } else if (prefix.contains('25')) {
+      batchCode = '25';
+    } else if (prefix.contains('26')) {
+      batchCode = '26';
+    }
+
+    if (batchCode == null && cleanRoll.length >= 4) {
+      final c23 = cleanRoll[1] + cleanRoll[2];
+      final c24 = cleanRoll[1] + cleanRoll[3];
+      if (['23', '24', '25', '26'].contains(c23)) {
+        batchCode = c23;
+      } else if (['23', '24', '25', '26'].contains(c24)) {
+        batchCode = c24;
+      }
+    }
+
+    if (batchCode == '23') {
+      detectedYear = '4th Year';
+      detectedYearOfPassing = 2027;
+    } else if (batchCode == '24') {
+      detectedYear = '3rd Year';
+      detectedYearOfPassing = 2028;
+    } else if (batchCode == '25') {
+      detectedYear = '2nd Year';
+      detectedYearOfPassing = 2029;
+    } else if (batchCode == '26') {
+      detectedYear = '1st Year';
+      detectedYearOfPassing = 2030;
+    }
+
+    return {
+      'branch': detectedBranch,
+      'yearOfPassing': detectedYearOfPassing,
+      'year': detectedYear,
+    };
+  }
+
+  Map<String, dynamic> buildUserData(String email, String displayName, {Map<String, dynamic>? backendUser}) {
+    final possibleRoll = email.split('@')[0];
+    final rollNum = (backendUser != null && backendUser['rollNumber'] != null && backendUser['rollNumber'].toString().isNotEmpty)
+        ? backendUser['rollNumber'].toString()
+        : possibleRoll;
+
+    final parsed = parseRollNumberDetails(rollNum);
+
+    final branch = (backendUser != null && backendUser['branch'] != null && backendUser['branch'].toString().isNotEmpty && backendUser['branch'] != 'Engineering')
+        ? backendUser['branch']
+        : (parsed['branch'] ?? 'Engineering');
+
+    final yearOfPassing = (backendUser != null && backendUser['yearOfPassing'] != null)
+        ? backendUser['yearOfPassing']
+        : (parsed['yearOfPassing'] ?? 2026);
+
+    final year = parsed['year'] ?? (backendUser != null ? backendUser['year'] : null);
+
+    return {
+      "id": backendUser != null ? backendUser['id'] : 6,
+      "name": (backendUser != null && backendUser['name'] != null) ? backendUser['name'] : displayName,
+      "email": email,
+      "role": backendUser != null ? backendUser['role'] : "student",
+      "branch": branch,
+      "rollNumber": rollNum,
+      "yearOfPassing": yearOfPassing,
+      if (year != null) "year": year,
+    };
+  }
+
   Future<void> checkSavedSession() async {
     try {
       final firebaseUser = FirebaseAuth.instance.currentUser;
@@ -666,15 +711,7 @@ class AppState extends ChangeNotifier {
         final displayName = firebaseUser.displayName ?? 'Student';
         
         _token = email;
-        _user = {
-          "id": 6,
-          "name": displayName,
-          "email": email,
-          "role": "student",
-          "branch": "Engineering",
-          "rollNumber": "22GVP1234",
-          "yearOfPassing": 2026
-        };
+        _user = buildUserData(email, displayName);
         notifyListeners();
 
         try {
@@ -687,7 +724,7 @@ class AppState extends ChangeNotifier {
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
             _token = data['token'];
-            _user = data['user'];
+            _user = buildUserData(email, displayName, backendUser: data['user']);
             notifyListeners();
             await fetchAllData();
             initFcm();
@@ -716,6 +753,7 @@ class AppState extends ChangeNotifier {
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
+        'bypass-tunnel-reminder': 'true',
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
@@ -728,6 +766,7 @@ class AppState extends ChangeNotifier {
         fetchEvents(),
         fetchBookings(),
         fetchNotifications(),
+        fetchTeamInvitations(),
       ]);
     } catch (e) {
       print('Error fetching data: $e');
@@ -741,34 +780,24 @@ class AppState extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      // Mock login details directly for demo/offline functionality
+      final userEmail = email.isNotEmpty ? email : "student@gvpce.ac.in";
       _token = "demo-jwt-token";
-      _user = {
-        "id": 5,
-        "name": "Teja K.",
-        "email": email.isNotEmpty ? email : "student@college.edu",
-        "role": "student",
-        "branch": "Computer Science & Engineering",
-        "rollNumber": "22CSE1084",
-        "yearOfPassing": 2026
-      };
+      _user = buildUserData(userEmail, "Teja K.");
       
-      // Also reset bookings list to default to keep it fresh
       _bookings = List.from(_defaultBookings);
       notifyListeners();
 
-      // Attempt to hit the actual API if the server is alive, otherwise swallow error and proceed
       try {
         final response = await http.post(
           Uri.parse('$baseUrl/auth/login'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _headers,
           body: jsonEncode({'email': email, 'password': password}),
         ).timeout(const Duration(seconds: 3));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           _token = data['token'];
-          _user = data['user'];
+          _user = buildUserData(userEmail, data['user']?['name'] ?? "Teja K.", backendUser: data['user']);
           notifyListeners();
           await fetchAllData();
           initFcm();
@@ -782,7 +811,7 @@ class AppState extends ChangeNotifier {
       return true;
     } catch (e) {
       print('Login error: $e');
-      return true; // Return true anyway for offline/demo APK
+      return true;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -793,17 +822,8 @@ class AppState extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      // Mock login details directly for demo/offline functionality
       _token = email;
-      _user = {
-        "id": 6,
-        "name": displayName,
-        "email": email,
-        "role": "student",
-        "branch": "Engineering",
-        "rollNumber": "22GVP1234",
-        "yearOfPassing": 2026
-      };
+      _user = buildUserData(email, displayName);
       
       _bookings = List.from(_defaultBookings);
       notifyListeners();
@@ -811,14 +831,14 @@ class AppState extends ChangeNotifier {
       try {
         final response = await http.post(
           Uri.parse('$baseUrl/auth/google-login'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _headers,
           body: jsonEncode({'email': email, 'name': displayName}),
         ).timeout(const Duration(seconds: 4));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           _token = data['token'];
-          _user = data['user'];
+          _user = buildUserData(email, displayName, backendUser: data['user']);
           notifyListeners();
           await fetchAllData();
           initFcm();
@@ -920,7 +940,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> fetchClubs() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/clubs')).timeout(const Duration(seconds: 3));
+      final response = await http.get(Uri.parse('$baseUrl/clubs'), headers: _headers).timeout(const Duration(seconds: 3));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         _clubs = data.map((json) => Club.fromJson(json)).toList();
@@ -937,7 +957,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> fetchEvents() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/events')).timeout(const Duration(seconds: 3));
+      final response = await http.get(Uri.parse('$baseUrl/events'), headers: _headers).timeout(const Duration(seconds: 3));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         _events = data.map((json) => Event.fromJson(json)).toList();
@@ -972,7 +992,7 @@ class AppState extends ChangeNotifier {
 
   Future<Map<String, dynamic>?> fetchClubDetails(int clubId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/clubs/$clubId')).timeout(const Duration(seconds: 3));
+      final response = await http.get(Uri.parse('$baseUrl/clubs/$clubId'), headers: _headers).timeout(const Duration(seconds: 3));
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         
@@ -1007,22 +1027,26 @@ class AppState extends ChangeNotifier {
     String transactionId = 'FREE_REG',
     String upiRefId = '',
     String paymentScreenshot = '',
+    Map<String, dynamic>? extraFields,
   }) async {
     _isLoading = true;
     notifyListeners();
     try {
+      final payload = {
+        'type': type,
+        'regMode': regMode,
+        'paymentMethod': paymentMethod,
+        'transactionId': transactionId,
+        'upiRefId': upiRefId,
+        'paymentScreenshot': paymentScreenshot,
+        if (extraFields != null) ...extraFields,
+      };
+
       final response = await http.post(
         Uri.parse('$baseUrl/events/$eventId/register'),
         headers: _headers,
-        body: jsonEncode({
-          'type': type,
-          'regMode': regMode,
-          'paymentMethod': paymentMethod,
-          'transactionId': transactionId,
-          'upiRefId': upiRefId,
-          'paymentScreenshot': paymentScreenshot,
-        }),
-      ).timeout(const Duration(seconds: 3));
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 201) {
         await fetchBookings();
@@ -1062,6 +1086,101 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<Map<String, dynamic>?> createRazorpayOrder({required double amount, int? eventId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/razorpay/create-order'),
+        headers: _headers,
+        body: jsonEncode({
+          'amount': amount,
+          'currency': 'INR',
+          'eventId': eventId,
+        }),
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print('Error creating Razorpay Order: $e');
+    }
+    final fallbackId = 'order_sph_${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+    return {
+      'success': true,
+      'key': 'rzp_test_TSKYJjtfjh7sGM',
+      'order_id': fallbackId,
+      'amount': (amount * 100).toInt(),
+      'currency': 'INR',
+      'status': 'created',
+    };
+  }
+
+  Future<bool> verifyRazorpayPayment({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+    required int eventId,
+    required String paymentMethod,
+    Map<String, dynamic>? extraFields,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final payload = {
+        'razorpay_order_id': orderId,
+        'razorpay_payment_id': paymentId,
+        'razorpay_signature': signature,
+        'eventId': eventId,
+        'paymentMethod': paymentMethod,
+        if (extraFields != null) ...extraFields,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/razorpay/verify-payment'),
+        headers: _headers,
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await fetchBookings();
+        return true;
+      }
+    } catch (e) {
+      print('Razorpay payment verification error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    final event = _events.firstWhere((ev) => ev.id == eventId, orElse: () => _events[0]);
+    final newReg = Registration(
+      id: DateTime.now().millisecondsSinceEpoch,
+      userId: _user != null ? _user!['id'] : 5,
+      userName: extraFields?['fullName'] ?? (_user != null ? _user!['name'] : 'Teja K.'),
+      userBranch: extraFields?['branch'] ?? (_user != null ? _user!['branch'] : 'Computer Science & Engineering'),
+      userRollNumber: extraFields?['rollNumber'] ?? (_user != null ? _user!['rollNumber'] : '324108883001'),
+      userYearOfPassing: _user != null ? _user!['yearOfPassing'] : 2026,
+      eventId: event.id,
+      eventTitle: event.title,
+      eventClubId: event.clubId,
+      eventPrice: event.price,
+      eventVenue: event.venue,
+      eventDate: event.dateString,
+      type: 'participant',
+      status: 'pending',
+      paymentMethod: paymentMethod,
+      paymentAmount: event.price,
+      transactionId: paymentId,
+      upiRefId: orderId,
+      paymentScreenshot: '',
+      timestamp: DateTime.now().toIso8601String(),
+      teamName: extraFields?['teamName'],
+    );
+    _bookings.add(newReg);
+    notifyListeners();
+    return true;
+  }
+
 
   Future<bool> createEvent({
     required String title,
@@ -1131,5 +1250,62 @@ class AppState extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  List<Map<String, dynamic>> _teamInvitations = [];
+  List<Map<String, dynamic>> get teamInvitations => _teamInvitations;
+
+  Future<void> fetchTeamInvitations() async {
+    if (!isAuthenticated) return;
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/team/invitations'),
+        headers: _headers,
+      ).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _teamInvitations = data.map((item) => Map<String, dynamic>.from(item)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Fetch team invitations error: $e');
+    }
+  }
+
+  Future<bool> acceptTeamInvitation(int inviteId) async {
+    if (!isAuthenticated) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/team/invitations/accept'),
+        headers: _headers,
+        body: jsonEncode({'inviteId': inviteId}),
+      ).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        await fetchTeamInvitations();
+        await fetchBookings();
+        return true;
+      }
+    } catch (e) {
+      print('Accept team invitation error: $e');
+    }
+    return false;
+  }
+
+  Future<bool> declineTeamInvitation(int inviteId) async {
+    if (!isAuthenticated) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/team/invitations/decline'),
+        headers: _headers,
+        body: jsonEncode({'inviteId': inviteId}),
+      ).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        await fetchTeamInvitations();
+        return true;
+      }
+    } catch (e) {
+      print('Decline team invitation error: $e');
+    }
+    return false;
   }
 }

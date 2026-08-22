@@ -240,13 +240,13 @@ else {
         $regId = (float)(int)(microtime(true) * 1000);
         $price = $isPaid ? (float)$matchedEvent['price'] : 0.00;
 
-        $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, :price, :eventVenue, :eventDate, 'participant', :status, :paymentMethod, :paymentAmount, :transactionId, :upiRefId, :paymentScreenshot, :timestamp)");
+        $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp, teamName) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, :price, :eventVenue, :eventDate, 'participant', :status, :paymentMethod, :paymentAmount, :transactionId, :upiRefId, :paymentScreenshot, :timestamp, :teamName)");
         $stmt->execute([
             'id' => $regId,
             'userId' => $currentUser['id'],
-            'userName' => $currentUser['name'],
-            'userBranch' => $currentUser['branch'] ?: 'General',
-            'userRollNumber' => $currentUser['rollNumber'] ?: 'N/A',
+            'userName' => isset($body['fullName']) && !empty($body['fullName']) ? $body['fullName'] : $currentUser['name'],
+            'userBranch' => isset($body['branch']) && !empty($body['branch']) ? $body['branch'] : ($currentUser['branch'] ?: 'General'),
+            'userRollNumber' => isset($body['rollNumber']) && !empty($body['rollNumber']) ? $body['rollNumber'] : ($currentUser['rollNumber'] ?: 'N/A'),
             'userYearOfPassing' => $currentUser['yearOfPassing'] ?: 2026,
             'eventId' => $matchedEvent['id'],
             'eventTitle' => $matchedEvent['title'],
@@ -255,13 +255,65 @@ else {
             'eventVenue' => $matchedEvent['venue'],
             'eventDate' => $matchedEvent['dateString'],
             'status' => $isPaid ? 'pending' : 'approved',
-            'paymentMethod' => $isPaid ? ($paymentMethod ?: 'UPI') : 'free',
+            'paymentMethod' => $isPaid ? ($paymentMethod ?: 'Razorpay') : 'free',
             'paymentAmount' => $price,
-            'transactionId' => $isPaid ? ($transactionId ?: 'PENDING') : 'FREE_REG',
+            'transactionId' => $isPaid ? ($transactionId ?: 'RAZORPAY_SUCCESS') : 'FREE_REG',
             'upiRefId' => $isPaid ? ($upiRefId ?: $transactionId) : '',
             'paymentScreenshot' => $isPaid ? $paymentScreenshot : '',
-            'timestamp' => date('c')
+            'timestamp' => date('c'),
+            'teamName' => isset($body['teamName']) ? $body['teamName'] : ''
         ]);
+
+        if ($selectedMode === 'Team' && isset($body['invites']) && is_array($body['invites'])) {
+            foreach ($body['invites'] as $invitee) {
+                if (!empty(trim($invitee))) {
+                    $stmtInv = $pdo->prepare("INSERT INTO team_invitations (teamName, leaderEmail, inviteeEmail, eventId, status, timestamp) VALUES (:teamName, :leaderEmail, :inviteeEmail, :eventId, 'pending', :timestamp)");
+                    $stmtInv->execute([
+                        'teamName' => isset($body['teamName']) ? $body['teamName'] : 'Unnamed Team',
+                        'leaderEmail' => $currentUser['email'],
+                        'inviteeEmail' => trim($invitee),
+                        'eventId' => $matchedEvent['id'],
+                        'timestamp' => date('c')
+                    ]);
+                }
+            }
+        }
+
+        // Append student registration details to Excel sheet
+        if (isset($body['domain']) || isset($body['collegeName']) || $matchedEvent['id'] == 2027 || strpos(strtolower($matchedEvent['title']), 'spheronix') !== false) {
+            $excelPath = realpath(__DIR__ . '/../../Hackathon_Students_Sample_Data.xlsx');
+            if (!$excelPath) {
+                $excelPath = __DIR__ . '/../../Hackathon_Students_Sample_Data.xlsx';
+            }
+
+            $rollNum = isset($body['rollNumber']) && !empty($body['rollNumber']) ? $body['rollNumber'] : ($currentUser['rollNumber'] ?: 'N/A');
+            $fullName = isset($body['fullName']) && !empty($body['fullName']) ? $body['fullName'] : ($currentUser['name'] ?: 'N/A');
+            $currentYear = isset($body['currentYear']) && !empty($body['currentYear']) ? $body['currentYear'] : '3rd year';
+            $branch = isset($body['branch']) && !empty($body['branch']) ? $body['branch'] : ($currentUser['branch'] ?: 'CSE');
+            $collegeName = isset($body['collegeName']) && !empty($body['collegeName']) ? $body['collegeName'] : 'Gayatri Vidya Parishad College of Engineering (Autonomous)';
+            $email = isset($body['email']) && !empty($body['email']) ? $body['email'] : ($currentUser['email'] ?: 'student@gvpce.ac.in');
+            $mobileNumber = isset($body['mobileNumber']) && !empty($body['mobileNumber']) ? $body['mobileNumber'] : '9876543210';
+            $domain = isset($body['domain']) && !empty($body['domain']) ? $body['domain'] : 'Full Stack Applications';
+            $mode = isset($body['mode']) && !empty($body['mode']) ? $body['mode'] : 'Individual';
+            $teamName = isset($body['teamName']) ? $body['teamName'] : '';
+
+            $cmd = sprintf(
+                'python "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"',
+                __DIR__ . '/../append_excel.py',
+                $excelPath,
+                escapeshellarg($rollNum),
+                escapeshellarg($fullName),
+                escapeshellarg($currentYear),
+                escapeshellarg($branch),
+                escapeshellarg($collegeName),
+                escapeshellarg($email),
+                escapeshellarg($mobileNumber),
+                escapeshellarg($domain),
+                escapeshellarg($mode),
+                escapeshellarg($teamName)
+            );
+            exec($cmd);
+        }
 
         sendJson([
             'id' => $regId,
@@ -506,6 +558,124 @@ else {
         $stmt->execute(['id' => $eventId]);
 
         sendJson(['message' => 'Event closed successfully.']);
+    } elseif ($path === '/team/invitations' && $method === 'GET') {
+        $currentUser = getAuthenticatedUser($pdo);
+        if (!$currentUser) {
+            sendJson(['error' => 'Unauthorized.'], 401);
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE (LOWER(inviteeEmail) = LOWER(:email) OR LOWER(inviteeEmail) = LOWER(:roll)) AND status = 'pending'");
+        $stmt->execute([
+            'email' => $currentUser['email'],
+            'roll' => $currentUser['rollNumber'] ?: 'N/A'
+        ]);
+        $invitations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($invitations as $inv) {
+            $stmtEv = $pdo->prepare("SELECT title, venue, dateString FROM events WHERE id = :id");
+            $stmtEv->execute(['id' => $inv['eventId']]);
+            $ev = $stmtEv->fetch(PDO::FETCH_ASSOC);
+            if ($ev) {
+                $inv['eventTitle'] = $ev['title'];
+                $inv['eventVenue'] = $ev['venue'];
+                $inv['eventDate'] = $ev['dateString'];
+            } else {
+                $inv['eventTitle'] = 'Hackathon Event';
+                $inv['eventVenue'] = 'Main Campus';
+                $inv['eventDate'] = '';
+            }
+            $result[] = $inv;
+        }
+
+        sendJson($result);
+
+    } elseif ($path === '/team/invitations/accept' && $method === 'POST') {
+        $currentUser = getAuthenticatedUser($pdo);
+        if (!$currentUser) {
+            sendJson(['error' => 'Unauthorized.'], 401);
+        }
+
+        $body = getJsonBody();
+        $inviteId = isset($body['inviteId']) ? (int)$body['inviteId'] : 0;
+
+        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE id = :id");
+        $stmt->execute(['id' => $inviteId]);
+        $invite = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$invite) {
+            sendJson(['error' => 'Invitation not found.'], 404);
+        }
+
+        if ($invite['status'] !== 'pending') {
+            sendJson(['error' => 'Invitation has already been processed.'], 400);
+        }
+
+        if (strtolower($invite['inviteeEmail']) !== strtolower($currentUser['email']) && strtolower($invite['inviteeEmail']) !== strtolower($currentUser['rollNumber'])) {
+            sendJson(['error' => 'Access denied.'], 403);
+        }
+
+        $stmt = $pdo->prepare("UPDATE team_invitations SET status = 'accepted' WHERE id = :id");
+        $stmt->execute(['id' => $inviteId]);
+
+        $stmtEv = $pdo->prepare("SELECT * FROM events WHERE id = :id");
+        $stmtEv->execute(['id' => $invite['eventId']]);
+        $matchedEvent = $stmtEv->fetch(PDO::FETCH_ASSOC);
+
+        if ($matchedEvent) {
+            $regId = (float)(int)(microtime(true) * 1000);
+            $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp, teamName) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, 0.00, :eventVenue, :eventDate, 'participant', 'approved', 'Team Invite', 0.00, :transactionId, :upiRefId, '', :timestamp, :teamName)");
+            $stmt->execute([
+                'id' => $regId,
+                'userId' => $currentUser['id'],
+                'userName' => $currentUser['name'],
+                'userBranch' => $currentUser['branch'] ?: 'General',
+                'userRollNumber' => $currentUser['rollNumber'] ?: 'N/A',
+                'userYearOfPassing' => $currentUser['yearOfPassing'] ?: 2026,
+                'eventId' => $matchedEvent['id'],
+                'eventTitle' => $matchedEvent['title'],
+                'eventClubId' => $matchedEvent['clubId'],
+                'eventVenue' => $matchedEvent['venue'],
+                'eventDate' => $matchedEvent['dateString'],
+                'transactionId' => 'INVITE_ACCEPTED_' . $inviteId,
+                'upiRefId' => 'INVITE_' . $inviteId,
+                'timestamp' => date('c'),
+                'teamName' => $invite['teamName']
+            ]);
+        }
+
+        sendJson(['success' => true, 'message' => 'Invitation accepted and registration completed.']);
+
+    } elseif ($path === '/team/invitations/decline' && $method === 'POST') {
+        $currentUser = getAuthenticatedUser($pdo);
+        if (!$currentUser) {
+            sendJson(['error' => 'Unauthorized.'], 401);
+        }
+
+        $body = getJsonBody();
+        $inviteId = isset($body['inviteId']) ? (int)$body['inviteId'] : 0;
+
+        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE id = :id");
+        $stmt->execute(['id' => $inviteId]);
+        $invite = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$invite) {
+            sendJson(['error' => 'Invitation not found.'], 404);
+        }
+
+        if ($invite['status'] !== 'pending') {
+            sendJson(['error' => 'Invitation has already been processed.'], 400);
+        }
+
+        if (strtolower($invite['inviteeEmail']) !== strtolower($currentUser['email']) && strtolower($invite['inviteeEmail']) !== strtolower($currentUser['rollNumber'])) {
+            sendJson(['error' => 'Access denied.'], 403);
+        }
+
+        $stmt = $pdo->prepare("UPDATE team_invitations SET status = 'declined' WHERE id = :id");
+        $stmt->execute(['id' => $inviteId]);
+
+        sendJson(['success' => true, 'message' => 'Invitation declined.']);
+
     } else {
         sendJson(['error' => 'Method not allowed'], 405);
     }

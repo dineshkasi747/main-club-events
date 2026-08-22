@@ -50,8 +50,108 @@ function getJsonBody() {
     return json_decode($raw, true) ?: [];
 }
 
+// Parse Roll Number details: branch code (8th & 9th digits) and study year (from batch prefix 23, 24, 25, 26)
+function parseRollNumberDetails($rollNum) {
+    $rollNum = trim((string)$rollNum);
+    if (empty($rollNum)) {
+        return ['branch' => null, 'yearOfPassing' => null, 'year' => null];
+    }
+
+    $branchMap = [
+        '02' => 'Chemical Engineering',
+        '08' => 'Civil Engineering',
+        '10' => 'Computer Science & Engineering',
+        '83' => 'CSE with Data Science',
+        '82' => 'CSE with AI & ML',
+        '12' => 'Electronics & Communication Engineering',
+        '14' => 'Electrical & Electronics Engineering',
+        '11' => 'Information Technology',
+        '20' => 'Mechanical Engineering',
+        '84' => 'Mechanical Engineering with Robotics',
+        '37' => 'CSE with Cyber Security',
+    ];
+
+    $detectedBranch = null;
+
+    if (strlen($rollNum) >= 9) {
+        $code89 = substr($rollNum, 7, 2);
+        if (isset($branchMap[$code89])) {
+            $detectedBranch = $branchMap[$code89];
+        }
+    }
+
+    if (!$detectedBranch && strlen($rollNum) >= 10) {
+        $code910 = substr($rollNum, 8, 2);
+        if (isset($branchMap[$code910])) {
+            $detectedBranch = $branchMap[$code910];
+        }
+    }
+
+    if (!$detectedBranch && strlen($rollNum) >= 8) {
+        $code78 = substr($rollNum, 6, 2);
+        if (isset($branchMap[$code78])) {
+            $detectedBranch = $branchMap[$code78];
+        }
+    }
+
+    if (!$detectedBranch) {
+        foreach ($branchMap as $code => $name) {
+            if (strpos($rollNum, $code) !== false) {
+                $detectedBranch = $name;
+                break;
+            }
+        }
+    }
+
+    $prefix = substr($rollNum, 0, 5);
+    $detectedYear = null;
+    $detectedYearOfPassing = null;
+
+    $batchCode = null;
+    if (strpos($prefix, '23') !== false) {
+        $batchCode = '23';
+    } elseif (strpos($prefix, '24') !== false) {
+        $batchCode = '24';
+    } elseif (strpos($prefix, '25') !== false) {
+        $batchCode = '25';
+    } elseif (strpos($prefix, '26') !== false) {
+        $batchCode = '26';
+    }
+
+    if (!$batchCode && strlen($rollNum) >= 4) {
+        $c23 = $rollNum[1] . $rollNum[2];
+        $c24 = $rollNum[1] . $rollNum[3];
+        if (in_array($c23, ['23', '24', '25', '26'])) {
+            $batchCode = $c23;
+        } elseif (in_array($c24, ['23', '24', '25', '26'])) {
+            $batchCode = $c24;
+        }
+    }
+
+    if ($batchCode === '23') {
+        $detectedYear = '4th Year';
+        $detectedYearOfPassing = 2027;
+    } elseif ($batchCode === '24') {
+        $detectedYear = '3rd Year';
+        $detectedYearOfPassing = 2028;
+    } elseif ($batchCode === '25') {
+        $detectedYear = '2nd Year';
+        $detectedYearOfPassing = 2029;
+    } elseif ($batchCode === '26') {
+        $detectedYear = '1st Year';
+        $detectedYearOfPassing = 2030;
+    }
+
+    return [
+        'branch' => $detectedBranch,
+        'yearOfPassing' => $detectedYearOfPassing,
+        'year' => $detectedYear
+    ];
+}
+
+
 // Parse request path info
-$path = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '';
+$path = isset($_GET['route']) ? $_GET['route'] : (isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '');
 if (empty($path)) {
     $requestUri = $_SERVER['REQUEST_URI'];
     $parts = explode('?', $requestUri);
@@ -197,10 +297,14 @@ if ($path === '/auth/login') {
     require_once __DIR__ . '/routes/clubs.php';
 } elseif ($path === '/events' || preg_match('#^/events/\d+$#', $path) || preg_match('#^/events/\d+/register$#', $path) || preg_match('#^/events/\d+/close$#', $path) || $path === '/historical-events' || preg_match('#^/historical-events/\d+$#', $path)) {
     require_once __DIR__ . '/routes/events.php';
-} elseif ($path === '/registrations' || preg_match('#^/registrations/\d+/verify$#', $path) || preg_match('#^/registrations/\d+/admit$#', $path)) {
+} elseif ($path === '/registrations' || preg_match('#^/registrations/\d+/verify$#', $path) || preg_match('#^/registrations/\d+/reject$#', $path) || preg_match('#^/registrations/\d+/admit$#', $path)) {
     require_once __DIR__ . '/routes/registrations.php';
 } elseif ($path === '/users/fcm-token' || preg_match('#^/notify/club/\d+$#', $path) || $path === '/notifications') {
     require_once __DIR__ . '/routes/notifications.php';
+} elseif (strpos($path, '/razorpay') === 0) {
+    require_once __DIR__ . '/routes/razorpay.php';
+} elseif (strpos($path, '/team') === 0) {
+    require_once __DIR__ . '/routes/events.php';
 } else {
     sendJson(['error' => 'Resource not found'], 404);
 }

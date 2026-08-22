@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/event.dart';
 import '../models/club.dart';
-import '../models/registration.dart';
 import 'club_detail_screen.dart';
 import 'event_detail_screen.dart';
 import 'ticket_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
+import 'sih_registration_screen.dart';
 import '../widgets/premium_image.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -392,6 +392,57 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   String _selectedCategory = 'All';
+  static bool _hasShownPosterThisSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasShownPosterThisSession && mounted) {
+        _hasShownPosterThisSession = true;
+        _showSihSplashPoster(context);
+      }
+    });
+  }
+
+  void _showSihSplashPoster(BuildContext context) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final sihEvent = appState.events.firstWhere(
+      (e) => e.title.contains('SIH') || e.clubId == 107,
+      orElse: () => appState.events.isNotEmpty ? appState.events.first : Event(
+        id: 2026,
+        clubId: 107,
+        title: "Registration for SIH 2026-Internal Hackathon",
+        description: "Smart India Hackathon 2026 Internal Selection Hackathon.",
+        venue: "Main Auditorium & CSE Computer Labs",
+        dateString: "Sep 25, 2026 @ 09:00 AM",
+        price: 200.0,
+        capacity: 500,
+        freeRegistration: false,
+        paidRegistration: true,
+        volunteerRegistration: false,
+        volunteerLimit: 0,
+        status: "active",
+        imagePath: "assets/sih/posters/sih_poster.jpg",
+      ),
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => SihPosterModal(
+        onRegisterTap: () {
+          Navigator.of(ctx).pop();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SihRegistrationScreen(sihEvent: sihEvent),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   final List<Map<String, dynamic>> _categories = [
     {'name': 'All', 'icon': Icons.auto_awesome, 'color': const Color(0xFF4F46E5)},
@@ -686,24 +737,31 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                           // Date Badge overlay
                           Positioned(
-                            left: 12,
-                            top: 12,
+                            left: 8,
+                            top: 8,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.white.withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     month,
-                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)),
+                                    style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)),
                                   ),
                                   Text(
                                     day,
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                                   )
                                 ],
                               ),
@@ -1113,56 +1171,94 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> {
             },
             itemBuilder: (context, index) {
               final event = widget.events[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: PremiumImage(
-                        url: event.imagePath,
-                        category: event.category,
-                        borderRadius: 20,
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          gradient: LinearGradient(
-                            colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: PremiumImage(
+                            url: event.imagePath,
+                            category: event.category,
+                            borderRadius: 20,
                           ),
                         ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              event.title,
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        // Sleek light card bottom overlay
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.white.withOpacity(0.85),
+                                  Colors.white,
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            Row(
+                            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.laptop, color: Colors.white70, size: 12),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    '${event.description.split('.')[0]} • ${event.dateString.split(' @')[0]} • ${event.venue.split(',')[0]}',
-                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF4F46E5),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        event.category.toUpperCase(),
+                                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      event.dateString.split(' @')[0],
+                                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  event.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -1722,12 +1818,100 @@ class ProfileTab extends StatelessWidget {
                 const Divider(height: 28, color: Color(0xFFE2E8F0)),
                 _profileRow('Branch', user['branch'] ?? 'N/A'),
                 _profileRow('Roll Number', user['rollNumber'] ?? 'N/A'),
+                if (user['year'] != null) _profileRow('Year of Study', user['year'].toString()),
                 _profileRow('Graduation Year', user['yearOfPassing']?.toString() ?? 'N/A'),
               ],
             ),
           ),
         ),
         const SizedBox(height: 24),
+
+        if (appState.teamInvitations.isNotEmpty) ...[
+          const Text(
+            'Pending Team Invitations',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 10),
+          ...appState.teamInvitations.map((invite) {
+            final inviteId = int.tryParse(invite['id'].toString()) ?? 0;
+            return Card(
+              color: const Color(0xFFEFF6FF),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Color(0xFFBFDBFE)),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.group_add, color: Color(0xFF2563EB), size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            invite['teamName'] ?? 'Unnamed Team',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E3A8A)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Event: ${invite['eventTitle'] ?? 'Hackathon Event'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Invited by: ${invite['leaderEmail']}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                    const Divider(height: 20, color: Color(0xFFDBEAFE)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () async {
+                            final success = await appState.declineTeamInvitation(inviteId);
+                            if (success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Invitation declined.')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.close, size: 16, color: Color(0xFFEF4444)),
+                          label: const Text('Decline', style: TextStyle(color: Color(0xFFEF4444), fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final success = await appState.acceptTeamInvitation(inviteId);
+                            if (success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Invitation accepted! Ticket generated.')),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                          ),
+                          icon: const Icon(Icons.check, size: 16, color: Colors.white),
+                          label: const Text('Accept', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 24),
+        ],
 
         const Text(
           'My Registered Bookings & Tickets',
@@ -1831,6 +2015,176 @@ class ProfileTab extends StatelessWidget {
         children: [
           Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
           Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+        ],
+      ),
+    );
+  }
+}
+
+// ── CLEAN LIGHT MODE SIH POSTER MODAL ────────────────────────────────
+class SihPosterModal extends StatefulWidget {
+  final VoidCallback onRegisterTap;
+
+  const SihPosterModal({super.key, required this.onRegisterTap});
+
+  @override
+  State<SihPosterModal> createState() => _SihPosterModalState();
+}
+
+class _SihPosterModalState extends State<SihPosterModal> with SingleTickerProviderStateMixin {
+  late AnimationController _progressController;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 650),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, spreadRadius: 2, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Column(
+                children: [
+                  // Clean Top Bar & Progress Bar
+                  AnimatedBuilder(
+                    animation: _progressController,
+                    builder: (context, child) {
+                      return Column(
+                        children: [
+                          LinearProgressIndicator(
+                            value: _progressController.value,
+                            backgroundColor: const Color(0xFFE2E8F0),
+                            color: const Color(0xFF10B981),
+                            minHeight: 4,
+                          ),
+                          Container(
+                            color: const Color(0xFFF8FAFC),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(Icons.stars, color: Color(0xFF10B981), size: 14),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Smart India Hackathon 2026',
+                                  style: TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  _progressController.value < 1.0 ? 'Loading ${(_progressController.value * 100).toInt()}%' : 'Ready',
+                                  style: TextStyle(
+                                    color: _progressController.value < 1.0 ? const Color(0xFF64748B) : const Color(0xFF10B981),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  // Official SIH Poster Image Area (Clickable)
+                  Expanded(
+                    child: InkWell(
+                      onTap: widget.onRegisterTap,
+                      child: Container(
+                        color: Colors.white,
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        child: Image.asset(
+                          'assets/sih/posters/sih_poster.jpg',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Clean Light Mode CTA Button
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: widget.onRegisterTap,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'REGISTER NOW',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Clean Close (X) Button
+          Positioned(
+            top: 10,
+            right: 10,
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFFE2E8F0),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.close, color: Color(0xFF334155), size: 16),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
         ],
       ),
     );
