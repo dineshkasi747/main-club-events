@@ -14,6 +14,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   String _errorMessage = '';
+  final TextEditingController _bypassEmailController = TextEditingController(text: '22cse1084@gvpce.ac.in');
+
+  @override
+  void dispose() {
+    _bypassEmailController.dispose();
+    super.dispose();
+  }
 
   void _handleGoogleLogin() async {
     setState(() {
@@ -184,6 +191,73 @@ class _LoginScreenState extends State<LoginScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
                       ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Text('OR DEVELOPER BYPASS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                        ),
+                        Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _bypassEmailController,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        labelText: 'Bypass Email / Roll Number',
+                        labelStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        hintText: 'e.g. 22cse1084@gvpce.ac.in',
+                        hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: appState.isLoading ? null : () async {
+                        final email = _bypassEmailController.text.trim();
+                        if (email.isEmpty) {
+                          setState(() => _errorMessage = 'Please enter an email.');
+                          return;
+                        }
+                        if (!email.toLowerCase().endsWith('@gvpce.ac.in')) {
+                          setState(() => _errorMessage = 'Only @gvpce.ac.in emails are permitted.');
+                          return;
+                        }
+                        setState(() {
+                          _errorMessage = '';
+                        });
+                        final success = await appState.googleLogin(email, 'Student User');
+                        if (success) {
+                          if (mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HomeScreen()),
+                            );
+                          }
+                        } else {
+                          setState(() {
+                            _errorMessage = 'Bypass login failed. Please try again.';
+                          });
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Sign In with Bypass', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ],
                 ),
