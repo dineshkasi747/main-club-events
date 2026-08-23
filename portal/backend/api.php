@@ -10,6 +10,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/config/db.php';
 
 function getAuthorizationHeader() {
+    if (isset($_GET['Authorization'])) {
+        return trim($_GET["Authorization"]);
+    }
     if (isset($_SERVER['Authorization'])) {
         return trim($_SERVER["Authorization"]);
     } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
@@ -289,7 +292,7 @@ function sendPushNotification($serviceAccount, $title, $body, $tokens) {
     return $successCount;
 }
 
-if ($path === '/auth/login') {
+if ($path === '/auth/login' || $path === '/auth/register') {
     require_once __DIR__ . '/routes/auth.php';
 } elseif ($path === '/auth/google-login') {
     require_once __DIR__ . '/routes/google.php';
@@ -297,8 +300,10 @@ if ($path === '/auth/login') {
     require_once __DIR__ . '/routes/clubs.php';
 } elseif ($path === '/events' || preg_match('#^/events/\d+$#', $path) || preg_match('#^/events/\d+/register$#', $path) || preg_match('#^/events/\d+/close$#', $path) || $path === '/historical-events' || preg_match('#^/historical-events/\d+$#', $path)) {
     require_once __DIR__ . '/routes/events.php';
-} elseif ($path === '/registrations' || preg_match('#^/registrations/\d+/verify$#', $path) || preg_match('#^/registrations/\d+/reject$#', $path) || preg_match('#^/registrations/\d+/admit$#', $path)) {
+} elseif ($path === '/registrations' || $path === '/registrations/export' || preg_match('#^/registrations/\d+/verify$#', $path) || preg_match('#^/registrations/\d+/reject$#', $path) || preg_match('#^/registrations/\d+/admit$#', $path)) {
     require_once __DIR__ . '/routes/registrations.php';
+} elseif ($path === '/users/search') {
+    require_once __DIR__ . '/routes/auth.php';
 } elseif ($path === '/users/fcm-token' || preg_match('#^/notify/club/\d+$#', $path) || $path === '/notifications') {
     require_once __DIR__ . '/routes/notifications.php';
 } elseif (strpos($path, '/razorpay') === 0) {

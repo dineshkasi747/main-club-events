@@ -1048,7 +1048,7 @@ class AppState extends ChangeNotifier {
         body: jsonEncode(payload),
       ).timeout(const Duration(seconds: 4));
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         await fetchBookings();
         return true;
       }
@@ -1179,6 +1179,38 @@ class AppState extends ChangeNotifier {
     _bookings.add(newReg);
     notifyListeners();
     return true;
+  }
+
+  Future<Map<String, dynamic>?> searchUser(String query) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/search?query=${Uri.encodeComponent(query)}'),
+        headers: _headers,
+      ).timeout(const Duration(seconds: 4));
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print('Search user error: $e');
+    }
+    return null;
+  }
+
+  Future<List<dynamic>> fetchSentInvitations(int eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/team/invitations/sent?eventId=$eventId'),
+        headers: _headers,
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      }
+    } catch (e) {
+      print('Fetch sent invitations error: $e');
+    }
+    return [];
   }
 
 

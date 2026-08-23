@@ -11,6 +11,7 @@ import 'login_screen.dart';
 import 'notifications_screen.dart';
 import 'sih_registration_screen.dart';
 import '../widgets/premium_image.dart';
+import 'pending_team_payment_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1995,10 +1996,17 @@ class ProfileTab extends StatelessWidget {
                   ),
                 ),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => TicketScreen(booking: booking)),
-                  );
+                  if (booking.status == 'pending_team') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PendingTeamPaymentScreen(booking: booking)),
+                    ).then((_) => appState.fetchBookings());
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => TicketScreen(booking: booking)),
+                    );
+                  }
                 },
               ),
             );

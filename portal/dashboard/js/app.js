@@ -1332,3 +1332,9 @@ function closeConfirmModal() {
     if (modal) modal.style.display = 'none';
     confirmActionCallback = null;
 }
+
+function exportToExcel() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    window.open(`${API_BASE}/registrations/export?Authorization=Bearer%20${encodeURIComponent(token)}`, '_blank');
+}

@@ -146,6 +146,78 @@ class _SpheronixRegistrationScreenState extends State<SpheronixRegistrationScree
 
   String _selectedPaymentMethod = 'Razorpay UPI Intent';
 
+  Future<void> _registerTeamAndSendInvites() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_teamNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a team name.')),
+      );
+      return;
+    }
+
+    List<String> invites = [];
+    for (int i = 0; i < _teamMembersCount - 1; i++) {
+      final input = _inviteControllers[i].text.trim();
+      if (input.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please fill all team member roll numbers/emails.')),
+        );
+        return;
+      }
+      invites.add(input);
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final appState = Provider.of<AppState>(context, listen: false);
+    final success = await appState.registerForEvent(
+      eventId: widget.event.id,
+      type: 'participant',
+      regMode: 'Team',
+      extraFields: {
+        'teamName': _teamNameController.text.trim(),
+        'invites': invites,
+        'domain': _selectedDomain,
+        'fullName': _fullNameController.text.trim(),
+        'rollNumber': _rollNumberController.text.trim(),
+        'branch': _branchController.text.trim(),
+        'collegeName': _collegeNameController.text.trim(),
+        'mobileNumber': _mobileController.text.trim(),
+      },
+    );
+
+    setState(() => _isSubmitting = false);
+
+    if (success) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Team Invitations Sent!', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text(
+            'Your team has been registered in pending state, and invitation emails have been dispatched to your team members.\n\nOnce all members accept their invites, you can finalize the payment on your bookings page to get your tickets.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to register team. Please try again.')),
+      );
+    }
+  }
+
   Future<void> _showRazorpayPaymentModal() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -645,6 +717,47 @@ class _SpheronixRegistrationScreenState extends State<SpheronixRegistrationScree
                           'Team Member ${i + 2} Roll Number / Email *',
                           'e.g. 22CSE108${i + 5}',
                           isRequired: true,
+                          onSearch: () async {
+                            final query = _inviteControllers[i].text.trim();
+                            if (query.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please enter a roll number or email to search.')),
+                              );
+                              return;
+                            }
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Searching student database...')),
+                            );
+
+                            final appState = Provider.of<AppState>(context, listen: false);
+                            final result = await appState.searchUser(query);
+                            
+                            if (!mounted) return;
+                            
+                            if (result != null && result['exists'] == true) {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  title: const Text('Student Found!', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  content: Text(
+                                    'Name: ${result['name']}\nEmail: ${result['email']}\nRoll Number: ${result['rollNumber']}\nBranch: ${result['branch']}',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                      child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )
+                                  ],
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Student not found in database. Entering their email directly is allowed; they will receive an invitation to register.')),
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(height: 18),
                       ],
@@ -652,7 +765,7 @@ class _SpheronixRegistrationScreenState extends State<SpheronixRegistrationScree
 
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: _showRazorpayPaymentModal,
+                      onPressed: _selectedMode == 'Team' ? _registerTeamAndSendInvites : _showRazorpayPaymentModal,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0284C7),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -661,7 +774,7 @@ class _SpheronixRegistrationScreenState extends State<SpheronixRegistrationScree
                       ),
                       child: Text(
                         _selectedMode == 'Team'
-                            ? 'Pay & Register Team (₹${(widget.event.price * _teamMembersCount).toStringAsFixed(0)})'
+                            ? 'Register & Send Team Invitations'
                             : 'Pay & Register (₹${widget.event.price.toStringAsFixed(0)})',
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
@@ -680,6 +793,7 @@ class _SpheronixRegistrationScreenState extends State<SpheronixRegistrationScree
     String hint, {
     TextInputType keyboardType = TextInputType.text,
     bool isRequired = false,
+    VoidCallback? onSearch,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,6 +819,12 @@ class _SpheronixRegistrationScreenState extends State<SpheronixRegistrationScree
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
             ),
+            suffixIcon: onSearch != null
+                ? IconButton(
+                    icon: const Icon(Icons.search, color: Color(0xFF0284C7)),
+                    onPressed: onSearch,
+                  )
+                : null,
           ),
         ),
       ],

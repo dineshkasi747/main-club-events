@@ -1,20 +1,18 @@
 <?php
-function sendTeamInvitationEmail($toEmail, $teamName, $leaderName, $eventName) {
+function sendTeamInvitationEmail($inviteId, $toEmail, $teamName, $leaderName, $eventName) {
     $subject = "Team Invitation: Join '$teamName' for $eventName";
+    $acceptLink = "https://gvp-college-portal.loca.lt/portal/dashboard/accept_invite.php?id=" . $inviteId;
     $htmlContent = "
     <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;'>
         <h2 style='color: #4f46e5; margin-bottom: 20px;'>CampusLink Team Invitation</h2>
         <p>Hi,</p>
         <p>You have been invited by <strong>$leaderName</strong> to join their team <strong>$teamName</strong> for the upcoming event <strong>$eventName</strong>.</p>
-        <p style='margin: 25px 0;'>
-            To accept this invitation and claim your digital ticket, please:
-            <ol>
-                <li>Open the <strong>CampusLink Mobile App</strong> on your device.</li>
-                <li>Log in to your account (using your roll number/student email).</li>
-                <li>Go to the <strong>Profile</strong> tab.</li>
-                <li>Click <strong>Accept</strong> on the invitation card under the <em>Pending Team Invitations</em> panel.</li>
-            </ol>
+        <p style='margin: 25px 0; text-align: center;'>
+            <a href='$acceptLink' style='display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06);'>Accept Invitation</a>
         </p>
+        <p>Alternatively, you can copy and paste this link into your browser:</p>
+        <p style='background-color: #f1f5f9; padding: 10px; border-radius: 4px; font-family: monospace; word-break: break-all; font-size: 13px;'>$acceptLink</p>
+        <p style='margin-top: 20px;'>If you don't have an account, the link will let you register first. Once logged in, you can accept the invitation.</p>
         <p style='color: #64748b; font-size: 13px; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px;'>
             Best regards,<br>
             <strong>CampusLink GVP Team</strong>
@@ -28,7 +26,7 @@ function sendTeamInvitationEmail($toEmail, $teamName, $leaderName, $eventName) {
     }
     $logFile = $logDir . '/emails.log';
     $plainText = strip_tags(str_replace(['<br>', '</p>', '<li>'], ["\n", "\n", "\n- "], $htmlContent));
-    $logMsg = "[" . date('Y-m-d H:i:s') . "] To: $toEmail\nSubject: $subject\n\n$plainText\n========================================\n";
+    $logMsg = "[" . date('Y-m-d H:i:s') . "] To: $toEmail\nSubject: $subject\nLink: $acceptLink\n\n$plainText\n========================================\n";
     file_put_contents($logFile, $logMsg, FILE_APPEND);
 
     // API Configurations (e.g. Brevo)
@@ -289,10 +287,11 @@ else {
 
         // Participant path
         $isPaid = $selectedMode === 'paid';
+        $isTeam = ($selectedMode === 'Team');
         if ($isPaid && (!$matchedEvent['paidRegistration'])) {
             sendJson(['error' => 'Paid registration is not open for this event.'], 400);
         }
-        if (!$isPaid && (!$matchedEvent['freeRegistration'])) {
+        if (!$isPaid && !$isTeam && (!$matchedEvent['freeRegistration'])) {
             sendJson(['error' => 'Free registration is not open for this event.'], 400);
         }
 
@@ -303,9 +302,11 @@ else {
         }
 
         $regId = (float)(int)(microtime(true) * 1000);
-        $price = $isPaid ? (float)$matchedEvent['price'] : 0.00;
+        $price = ($isPaid || $isTeam) ? (float)$matchedEvent['price'] : 0.00;
+        
+        $status = $isTeam ? 'pending_team' : ($isPaid ? 'pending' : 'approved');
 
-        $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp, teamName) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, :price, :eventVenue, :eventDate, 'participant', :status, :paymentMethod, :paymentAmount, :transactionId, :upiRefId, :paymentScreenshot, :timestamp, :teamName)");
+        $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp, teamName, teamLeaderEmail) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, :price, :eventVenue, :eventDate, 'participant', :status, :paymentMethod, :paymentAmount, :transactionId, :upiRefId, :paymentScreenshot, :timestamp, :teamName, :teamLeaderEmail)");
         $stmt->execute([
             'id' => $regId,
             'userId' => $currentUser['id'],
@@ -319,17 +320,18 @@ else {
             'price' => $price,
             'eventVenue' => $matchedEvent['venue'],
             'eventDate' => $matchedEvent['dateString'],
-            'status' => $isPaid ? 'pending' : 'approved',
-            'paymentMethod' => $isPaid ? ($paymentMethod ?: 'Razorpay') : 'free',
+            'status' => $status,
+            'paymentMethod' => $isTeam ? 'Team' : ($isPaid ? ($paymentMethod ?: 'Razorpay') : 'free'),
             'paymentAmount' => $price,
-            'transactionId' => $isPaid ? ($transactionId ?: 'RAZORPAY_SUCCESS') : 'FREE_REG',
-            'upiRefId' => $isPaid ? ($upiRefId ?: $transactionId) : '',
+            'transactionId' => $isTeam ? 'PENDING_LEADER_PAYMENT' : ($isPaid ? ($transactionId ?: 'RAZORPAY_SUCCESS') : 'FREE_REG'),
+            'upiRefId' => $isTeam ? 'PENDING_LEADER_PAYMENT' : ($isPaid ? ($upiRefId ?: $transactionId) : ''),
             'paymentScreenshot' => $isPaid ? $paymentScreenshot : '',
             'timestamp' => date('c'),
-            'teamName' => isset($body['teamName']) ? $body['teamName'] : ''
+            'teamName' => isset($body['teamName']) ? $body['teamName'] : '',
+            'teamLeaderEmail' => $isTeam ? $currentUser['email'] : ''
         ]);
 
-        if ($selectedMode === 'Team' && isset($body['invites']) && is_array($body['invites'])) {
+        if ($isTeam && isset($body['invites']) && is_array($body['invites'])) {
             foreach ($body['invites'] as $invitee) {
                 if (!empty(trim($invitee))) {
                     $inviteeEmail = trim($invitee);
@@ -347,8 +349,11 @@ else {
                         'timestamp' => date('c')
                     ]);
 
+                    $inviteId = $pdo->lastInsertId();
+
                     // Send email notification (logs locally & attempts delivery)
                     sendTeamInvitationEmail(
+                        $inviteId,
                         $inviteeEmail, 
                         $body['teamName'] ?? 'Unnamed Team', 
                         $currentUser['name'] ?? $currentUser['email'], 
@@ -643,7 +648,7 @@ else {
             sendJson(['error' => 'Unauthorized.'], 401);
         }
 
-        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE (LOWER(inviteeEmail) = LOWER(:email) OR LOWER(inviteeEmail) = LOWER(:roll)) AND status = 'pending'");
+        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE (LOWER(inviteeEmail) = LOWER(:email) OR LOWER(inviteeEmail) = LOWER(:roll))");
         $stmt->execute([
             'email' => $currentUser['email'],
             'roll' => $currentUser['rollNumber'] ?: 'N/A'
@@ -668,6 +673,49 @@ else {
         }
 
         sendJson($result);
+
+    } elseif ($path === '/team/invitations/sent' && $method === 'GET') {
+        $currentUser = getAuthenticatedUser($pdo);
+        if (!$currentUser) {
+            sendJson(['error' => 'Unauthorized.'], 401);
+        }
+        
+        $eventId = isset($_GET['eventId']) ? (int)$_GET['eventId'] : 0;
+        
+        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE leaderEmail = :leaderEmail AND eventId = :eventId");
+        $stmt->execute([
+            'leaderEmail' => $currentUser['email'],
+            'eventId' => $eventId
+        ]);
+        $invites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        sendJson($invites);
+
+    } elseif ($path === '/team/invitations/detail' && $method === 'GET') {
+        $inviteId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        
+        $stmt = $pdo->prepare("SELECT * FROM team_invitations WHERE id = :id");
+        $stmt->execute(['id' => $inviteId]);
+        $invite = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$invite) {
+            sendJson(['error' => 'Invitation not found.'], 404);
+        }
+
+        $stmtEv = $pdo->prepare("SELECT title, venue, dateString FROM events WHERE id = :id");
+        $stmtEv->execute(['id' => $invite['eventId']]);
+        $ev = $stmtEv->fetch(PDO::FETCH_ASSOC);
+        
+        sendJson([
+            'id' => $invite['id'],
+            'teamName' => $invite['teamName'],
+            'leaderEmail' => $invite['leaderEmail'],
+            'inviteeEmail' => $invite['inviteeEmail'],
+            'eventId' => $invite['eventId'],
+            'status' => $invite['status'],
+            'eventTitle' => $ev ? $ev['title'] : 'Hackathon Event',
+            'eventVenue' => $ev ? $ev['venue'] : '',
+            'eventDate' => $ev ? $ev['dateString'] : ''
+        ]);
 
     } elseif ($path === '/team/invitations/accept' && $method === 'POST') {
         $currentUser = getAuthenticatedUser($pdo);
@@ -703,7 +751,7 @@ else {
 
         if ($matchedEvent) {
             $regId = (float)(int)(microtime(true) * 1000);
-            $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp, teamName) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, 0.00, :eventVenue, :eventDate, 'participant', 'approved', 'Team Invite', 0.00, :transactionId, :upiRefId, '', :timestamp, :teamName)");
+            $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp, teamName, teamLeaderEmail) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, 0.00, :eventVenue, :eventDate, 'participant', 'pending_team', 'Team Invite', 0.00, 'PENDING_LEADER_PAYMENT', 'PENDING_LEADER_PAYMENT', '', :timestamp, :teamName, :teamLeaderEmail)");
             $stmt->execute([
                 'id' => $regId,
                 'userId' => $currentUser['id'],
@@ -716,14 +764,13 @@ else {
                 'eventClubId' => $matchedEvent['clubId'],
                 'eventVenue' => $matchedEvent['venue'],
                 'eventDate' => $matchedEvent['dateString'],
-                'transactionId' => 'INVITE_ACCEPTED_' . $inviteId,
-                'upiRefId' => 'INVITE_' . $inviteId,
                 'timestamp' => date('c'),
-                'teamName' => $invite['teamName']
+                'teamName' => $invite['teamName'],
+                'teamLeaderEmail' => $invite['leaderEmail']
             ]);
         }
 
-        sendJson(['success' => true, 'message' => 'Invitation accepted and registration completed.']);
+        sendJson(['success' => true, 'message' => 'Invitation accepted.']);
 
     } elseif ($path === '/team/invitations/decline' && $method === 'POST') {
         $currentUser = getAuthenticatedUser($pdo);

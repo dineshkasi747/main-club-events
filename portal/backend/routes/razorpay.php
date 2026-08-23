@@ -112,36 +112,93 @@ if ($path === '/razorpay/verify-payment' && $_SERVER['REQUEST_METHOD'] === 'POST
         ];
     }
 
-    $regId = (float)(int)(microtime(true) * 1000);
     $price = (float)$matchedEvent['price'];
-
-    $userId = $currentUser ? $currentUser['id'] : 5;
-    $userName = !empty($body['fullName']) ? $body['fullName'] : ($currentUser ? $currentUser['name'] : 'Teja K.');
-    $userBranch = !empty($body['branch']) ? $body['branch'] : ($currentUser ? $currentUser['branch'] : 'Computer Science & Engineering');
-    $userRollNumber = !empty($body['rollNumber']) ? $body['rollNumber'] : ($currentUser ? $currentUser['rollNumber'] : '324108883001');
-    $userYearOfPassing = $currentUser ? $currentUser['yearOfPassing'] : 2026;
     $paymentMethod = !empty($body['paymentMethod']) ? $body['paymentMethod'] : 'Razorpay UPI Intent';
 
-    $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, :price, :eventVenue, :eventDate, 'participant', 'pending', :paymentMethod, :paymentAmount, :transactionId, :upiRefId, '', :timestamp)");
-    $stmt->execute([
-        'id' => $regId,
-        'userId' => $userId,
-        'userName' => $userName,
-        'userBranch' => $userBranch,
-        'userRollNumber' => $userRollNumber,
-        'userYearOfPassing' => $userYearOfPassing,
-        'eventId' => $matchedEvent['id'],
-        'eventTitle' => $matchedEvent['title'],
-        'eventClubId' => $matchedEvent['clubId'],
-        'price' => $price,
-        'eventVenue' => $matchedEvent['venue'],
-        'eventDate' => $matchedEvent['dateString'],
-        'paymentMethod' => $paymentMethod,
-        'paymentAmount' => $price,
-        'transactionId' => $razorpayPaymentId,
-        'upiRefId' => $razorpayOrderId,
-        'timestamp' => date('c')
-    ]);
+    $existingRegId = isset($body['registrationId']) ? (float)$body['registrationId'] : 0;
+    $isExistingTeam = false;
+    $teamRegistrations = [];
+
+    if ($existingRegId > 0) {
+        $stmt = $pdo->prepare("SELECT * FROM registrations WHERE id = :id");
+        $stmt->execute(['id' => $existingRegId]);
+        $leaderReg = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($leaderReg && $leaderReg['status'] === 'pending_team') {
+            $isExistingTeam = true;
+            $regId = $existingRegId;
+            $price = (float)$leaderReg['eventPrice'];
+
+            // Update leader's registration
+            $stmt = $pdo->prepare("UPDATE registrations SET status = 'approved', transactionId = :txnId, upiRefId = :upiId, paymentMethod = :paymentMethod, paymentAmount = :paymentAmount, timestamp = :timestamp WHERE id = :id");
+            $stmt->execute([
+                'txnId' => $razorpayPaymentId,
+                'upiId' => $razorpayOrderId,
+                'paymentMethod' => $paymentMethod,
+                'paymentAmount' => $price,
+                'timestamp' => date('c'),
+                'id' => $existingRegId
+            ]);
+
+            // Update all team members' registrations
+            $stmt = $pdo->prepare("UPDATE registrations SET status = 'approved', transactionId = :txnId, upiRefId = :upiId, timestamp = :timestamp WHERE teamLeaderEmail = :leaderEmail AND eventId = :eventId AND status = 'pending_team'");
+            $stmt->execute([
+                'txnId' => $razorpayPaymentId,
+                'upiId' => $razorpayOrderId,
+                'timestamp' => date('c'),
+                'leaderEmail' => $leaderReg['teamLeaderEmail'],
+                'eventId' => $eventId
+            ]);
+
+            // Fetch all approved team members (including leader) to append to Excel
+            $stmt = $pdo->prepare("SELECT * FROM registrations WHERE eventId = :eventId AND (id = :id OR (teamLeaderEmail = :leaderEmail AND status = 'approved'))");
+            $stmt->execute([
+                'eventId' => $eventId,
+                'id' => $existingRegId,
+                'leaderEmail' => $leaderReg['teamLeaderEmail']
+            ]);
+            $teamRegistrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    }
+
+    if (!$isExistingTeam) {
+        // Individual path
+        $regId = (float)(int)(microtime(true) * 1000);
+        $userId = $currentUser ? $currentUser['id'] : 5;
+        $userName = !empty($body['fullName']) ? $body['fullName'] : ($currentUser ? $currentUser['name'] : 'Teja K.');
+        $userBranch = !empty($body['branch']) ? $body['branch'] : ($currentUser ? $currentUser['branch'] : 'Computer Science & Engineering');
+        $userRollNumber = !empty($body['rollNumber']) ? $body['rollNumber'] : ($currentUser ? $currentUser['rollNumber'] : '324108883001');
+        $userYearOfPassing = $currentUser ? $currentUser['yearOfPassing'] : 2026;
+
+        $stmt = $pdo->prepare("INSERT INTO registrations (id, userId, userName, userBranch, userRollNumber, userYearOfPassing, eventId, eventTitle, eventClubId, eventPrice, eventVenue, eventDate, type, status, paymentMethod, paymentAmount, transactionId, upiRefId, paymentScreenshot, timestamp) VALUES (:id, :userId, :userName, :userBranch, :userRollNumber, :userYearOfPassing, :eventId, :eventTitle, :eventClubId, :price, :eventVenue, :eventDate, 'participant', 'approved', :paymentMethod, :paymentAmount, :transactionId, :upiRefId, '', :timestamp)");
+        $stmt->execute([
+            'id' => $regId,
+            'userId' => $userId,
+            'userName' => $userName,
+            'userBranch' => $userBranch,
+            'userRollNumber' => $userRollNumber,
+            'userYearOfPassing' => $userYearOfPassing,
+            'eventId' => $matchedEvent['id'],
+            'eventTitle' => $matchedEvent['title'],
+            'eventClubId' => $matchedEvent['clubId'],
+            'price' => $price,
+            'eventVenue' => $matchedEvent['venue'],
+            'eventDate' => $matchedEvent['dateString'],
+            'paymentMethod' => $paymentMethod,
+            'paymentAmount' => $price,
+            'transactionId' => $razorpayPaymentId,
+            'upiRefId' => $razorpayOrderId,
+            'timestamp' => date('c')
+        ]);
+
+        $teamRegistrations[] = [
+            'userId' => $userId,
+            'userName' => $userName,
+            'userBranch' => $userBranch,
+            'userRollNumber' => $userRollNumber,
+            'teamName' => $body['teamName'] ?? ''
+        ];
+    }
 
     // Append to Excel Sheet
     $excelPath = realpath(__DIR__ . '/../../Hackathon_Students_Sample_Data.xlsx');
@@ -149,33 +206,45 @@ if ($path === '/razorpay/verify-payment' && $_SERVER['REQUEST_METHOD'] === 'POST
         $excelPath = __DIR__ . '/../../Hackathon_Students_Sample_Data.xlsx';
     }
 
-    $rollNum = !empty($body['rollNumber']) ? $body['rollNumber'] : $userRollNumber;
-    $fullName = !empty($body['fullName']) ? $body['fullName'] : $userName;
-    $currentYear = !empty($body['currentYear']) ? $body['currentYear'] : '3rd year';
-    $branch = !empty($body['branch']) ? $body['branch'] : $userBranch;
-    $collegeName = !empty($body['collegeName']) ? $body['collegeName'] : 'Gayatri Vidya Parishad College of Engineering (Autonomous)';
-    $email = !empty($body['email']) ? $body['email'] : ($currentUser ? $currentUser['email'] : 'student@gvpce.ac.in');
-    $mobileNumber = !empty($body['mobileNumber']) ? $body['mobileNumber'] : '9876543210';
-    $domain = !empty($body['domain']) ? $body['domain'] : 'Full Stack Applications';
-    $mode = !empty($body['mode']) ? $body['mode'] : 'Individual';
-    $teamName = $body['teamName'] ?? '';
+    foreach ($teamRegistrations as $reg) {
+        $rollNum = $reg['userRollNumber'];
+        $fullName = $reg['userName'];
+        $currentYear = !empty($body['currentYear']) ? $body['currentYear'] : '3rd year';
+        $branch = $reg['userBranch'];
+        $collegeName = !empty($body['collegeName']) ? $body['collegeName'] : 'Gayatri Vidya Parishad College of Engineering (Autonomous)';
+        
+        $email = '';
+        if (isset($reg['userId'])) {
+            $stmtU = $pdo->prepare("SELECT email FROM users WHERE id = :id");
+            $stmtU->execute(['id' => $reg['userId']]);
+            $email = $stmtU->fetchColumn() ?: '';
+        }
+        if (empty($email)) {
+            $email = strtolower($rollNum) . '@gvpce.ac.in';
+        }
+        
+        $mobileNumber = !empty($body['mobileNumber']) ? $body['mobileNumber'] : '9876543210';
+        $domain = !empty($body['domain']) ? $body['domain'] : 'Full Stack Applications';
+        $mode = $isExistingTeam ? 'Team' : (!empty($body['mode']) ? $body['mode'] : 'Individual');
+        $tName = isset($reg['teamName']) ? $reg['teamName'] : ($body['teamName'] ?? '');
 
-    $cmd = sprintf(
-        'python "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"',
-        __DIR__ . '/../append_excel.py',
-        $excelPath,
-        escapeshellarg($rollNum),
-        escapeshellarg($fullName),
-        escapeshellarg($currentYear),
-        escapeshellarg($branch),
-        escapeshellarg($collegeName),
-        escapeshellarg($email),
-        escapeshellarg($mobileNumber),
-        escapeshellarg($domain),
-        escapeshellarg($mode),
-        escapeshellarg($teamName)
-    );
-    exec($cmd);
+        $cmd = sprintf(
+            'python "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"',
+            __DIR__ . '/../append_excel.py',
+            $excelPath,
+            escapeshellarg($rollNum),
+            escapeshellarg($fullName),
+            escapeshellarg($currentYear),
+            escapeshellarg($branch),
+            escapeshellarg($collegeName),
+            escapeshellarg($email),
+            escapeshellarg($mobileNumber),
+            escapeshellarg($domain),
+            escapeshellarg($mode),
+            escapeshellarg($tName)
+        );
+        exec($cmd);
+    }
 
     sendJson([
         'success' => true,

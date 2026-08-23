@@ -4,6 +4,56 @@ if (!$currentUser) {
     sendJson(['error' => 'Unauthorized. Invalid or expired token.'], 401);
 }
 
+if ($path === '/registrations/export' && $method === 'GET') {
+    if ($currentUser['role'] !== 'admin' && $currentUser['role'] !== 'president') {
+        sendJson(['error' => 'Unauthorized'], 403);
+    }
+
+    if ($currentUser['role'] === 'president') {
+        $stmt = $pdo->prepare("SELECT * FROM registrations WHERE eventClubId = :clubId AND status = 'approved' ORDER BY id DESC");
+        $stmt->execute(['clubId' => $currentUser['clubId']]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM registrations WHERE status = 'approved' ORDER BY id DESC");
+    }
+    $bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Generate CSV file
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=registrations_export_' . date('Ymd_His') . '.csv');
+    
+    $output = fopen('php://output', 'w');
+    
+    // Output column headers
+    fputcsv($output, [
+        'Registration ID', 'User Name', 'Branch', 'Roll Number', 'Year of Passing',
+        'Event Title', 'Venue', 'Event Date', 'Registration Type', 'Payment Method',
+        'Payment Amount', 'Transaction ID', 'UPI Ref ID', 'Timestamp', 'Team Name', 'Team Leader Email'
+    ]);
+    
+    foreach ($bookings as $row) {
+        fputcsv($output, [
+            $row['id'],
+            $row['userName'],
+            $row['userBranch'],
+            $row['userRollNumber'],
+            $row['userYearOfPassing'],
+            $row['eventTitle'],
+            $row['eventVenue'],
+            $row['eventDate'],
+            $row['type'],
+            $row['paymentMethod'],
+            $row['paymentAmount'],
+            $row['transactionId'],
+            $row['upiRefId'],
+            $row['timestamp'],
+            $row['teamName'],
+            $row['teamLeaderEmail']
+        ]);
+    }
+    fclose($output);
+    exit;
+}
+
 if ($path === '/registrations' && $method === 'GET') {
     if ($currentUser['role'] === 'student') {
         $stmt = $pdo->prepare("SELECT * FROM registrations WHERE userId = :userId");

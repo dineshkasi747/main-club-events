@@ -77,6 +77,58 @@ if ($path === '/auth/login' && $method === 'POST') {
             'year' => $year,
         ]
     ]);
+} elseif ($path === '/auth/register' && $method === 'POST') {
+    $body = getJsonBody();
+    $name = isset($body['name']) ? trim($body['name']) : '';
+    $email = isset($body['email']) ? trim($body['email']) : '';
+    $password = isset($body['password']) ? trim($body['password']) : '';
+
+    if (empty($name) || empty($email) || empty($password)) {
+        sendJson(['error' => 'All fields (name, email, password) are required.'], 400);
+    }
+
+    if (substr(strrchr($email, "@"), 1) !== 'gvpce.ac.in') {
+        sendJson(['error' => 'Access Denied: Only @gvpce.ac.in accounts are permitted.'], 403);
+    }
+
+    // Check if user already exists
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(:email)");
+    $stmt->execute(['email' => $email]);
+    if ($stmt->fetch()) {
+        sendJson(['error' => 'Email is already registered.'], 400);
+    }
+
+    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, role, password) VALUES (:name, :email, 'student', :password)");
+    $stmt->execute([
+        'name' => $name,
+        'email' => $email,
+        'password' => $hashedPassword
+    ]);
+
+    sendJson(['success' => true, 'message' => 'Registration successful. You can now log in.']);
+} elseif ($path === '/users/search' && $method === 'GET') {
+    $query = isset($_GET['query']) ? trim($_GET['query']) : '';
+    if (empty($query)) {
+        sendJson(['exists' => false, 'error' => 'Query parameter is required.'], 400);
+    }
+
+    $stmt = $pdo->prepare("SELECT name, email, rollNumber, branch FROM users WHERE LOWER(email) = LOWER(:query) OR LOWER(rollNumber) = LOWER(:query)");
+    $stmt->execute(['query' => $query]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user) {
+        sendJson([
+            'exists' => true,
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'rollNumber' => $user['rollNumber'] ?: $query,
+            'branch' => $user['branch'] ?: 'General'
+        ]);
+    } else {
+        sendJson(['exists' => false]);
+    }
 } else {
     sendJson(['error' => 'Method not allowed'], 405);
 }

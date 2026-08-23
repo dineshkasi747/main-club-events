@@ -113,7 +113,9 @@ CREATE TABLE `registrations` (
   `transactionId` VARCHAR(255) NOT NULL,
   `upiRefId` VARCHAR(255) DEFAULT '',
   `paymentScreenshot` VARCHAR(2083) DEFAULT '',
-  `timestamp` VARCHAR(100) NOT NULL
+  `timestamp` VARCHAR(100) NOT NULL,
+  `teamName` VARCHAR(255) DEFAULT '',
+  `teamLeaderEmail` VARCHAR(255) DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `registrations` (`id`, `userId`, `userName`, `userBranch`, `userRollNumber`, `userYearOfPassing`, `eventId`, `eventTitle`, `eventClubId`, `eventPrice`, `eventVenue`, `eventDate`, `type`, `status`, `paymentMethod`, `paymentAmount`, `transactionId`, `upiRefId`, `paymentScreenshot`, `timestamp`) VALUES (5001, 5, 'Teja K.', 'Computer Science & Engineering', '22CSE1084', 2026, 1001, 'CodeSprint 5.0 Hackathon', 101, 150, 'Main Block, Lab 3', 'Aug 27, 2026 @ 09:00 AM', 'participant', 'pending', 'UPI (PhonePe)', 150, 'TXN987654321', '', '', '2026-06-26T12:00:00.000Z');
